@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>সকল সিমে রিচার্জ করুন - HM-NAYEM-TELECOM</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+
+    :root{
+      --bg:#050505; --panel:#0a0a0a; --cyan:#00e5ff; --red:#ff2d55;
+      --green:#00e676; --yellow:#ffd60a; --blue:#2979ff; --magenta:#ff2dd4;
+      --text:#f2f2f2; --muted:#9aa0a6;
+    }
+    *{box-sizing:border-box; margin:0; padding:0;}
+    body{
+      background:radial-gradient(circle at top, #101010 0%, #000 70%);
+      color:var(--text); font-family:'Segoe UI', Tahoma, sans-serif;
+      max-width:520px; margin:0 auto; min-height:100vh;
+      padding-bottom:78px; position:relative;
+    }
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 14px; border-bottom:2px solid var(--red);
+      box-shadow:0 0 18px rgba(255,45,85,0.45);
+      background:#000; position:sticky; top:0; z-index:500;
+    }
+    .topbar .title{
+      font-weight:800; font-size:15px; text-align:center; flex:1;
+      letter-spacing:0.5px; text-shadow:0 0 8px var(--cyan);
+    }
+    .icon-btn{
+      background:none; border:none; color:var(--cyan); font-size:22px;
+      cursor:pointer; text-shadow:0 0 8px var(--cyan); position:relative;
+    }
+    .back-btn{background:none;border:none;color:var(--cyan);font-size:20px;cursor:pointer;text-shadow:0 0 8px var(--cyan);}
+    .container{padding:16px 14px;}
+    .section-title{
+      text-align:center; color:var(--green); font-size:18px; font-weight:700;
+      border-bottom:2px solid var(--cyan); padding-bottom:10px; margin-bottom:16px;
+      text-shadow:0 0 8px var(--green);
+    }
+    .bottom-nav{
+      position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+      width:100%; max-width:520px; display:flex; justify-content:space-around;
+      background:#000; border-top:2px solid var(--red); padding:10px 0 14px;
+      box-shadow:0 0 18px rgba(255,45,85,0.45); z-index:500;
+    }
+    .nav-item{
+      display:flex; flex-direction:column; align-items:center; gap:3px;
+      color:var(--muted); text-decoration:none; font-size:11px;
+    }
+    .nav-item.active{color:var(--cyan); text-shadow:0 0 8px var(--cyan);}
+    .nav-item .nav-icon{font-size:20px;}
+    .side-menu{
+      position:fixed; top:0; left:-320px; width:280px; height:100vh;
+      background:#000; border-right:2px solid var(--blue); z-index:2000;
+      transition:left 0.3s ease; padding:20px 18px; overflow-y:auto;
+      box-shadow:0 0 25px rgba(41,121,255,0.5);
+    }
+    .side-menu.open{left:0;}
+    .side-menu-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1999; display:none;}
+    .side-menu-overlay.show{display:block;}
+    .side-menu-header{display:flex; align-items:center; gap:12px; margin-bottom:6px; margin-top:20px;}
+    .side-menu-header img{width:46px; height:46px; border-radius:50%; border:2px solid var(--red); object-fit:cover;}
+    .side-menu-header .name{font-weight:800; font-size:14px;}
+    .side-menu-header .ver{font-size:11px; color:var(--muted);}
+    .side-menu hr{border:none; border-top:2px solid var(--blue); margin:14px 0;}
+    .side-menu a{
+      display:block; padding:13px 14px; margin-bottom:10px; border-radius:10px;
+      border:1.5px solid var(--cyan); color:#fff; text-decoration:none; font-size:14px;
+    }
+    .close-menu{position:absolute; top:16px; right:16px; background:none; border:none; color:#fff; font-size:20px;}
+    .fab-support{
+      position:fixed; bottom:88px; right:16px; width:52px; height:52px;
+      border-radius:50%; background:#111; border:2px solid var(--red);
+      display:flex; align-items:center; justify-content:center; font-size:24px;
+      box-shadow:0 0 16px rgba(255,45,85,0.7); z-index:400; text-decoration:none;
+    }
+    .loading-wrap{display:flex; align-items:center; justify-content:center; min-height:50vh;}
+    .spinner{width:44px; height:44px; border:4px solid #222; border-top-color:var(--cyan); border-radius:50%; animation:spin 0.8s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .hidden{display:none !important;}
+
+
+    .op-title{text-align:center;color:var(--green);font-size:20px;font-weight:800;margin:14px 0 18px;text-shadow:0 0 10px var(--green);}
+    .op-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+    .op-card{
+      border:2px solid var(--cyan); border-radius:16px; padding:18px 10px;
+      display:flex; flex-direction:column; align-items:center; gap:10px;
+      text-decoration:none; color:#fff; background:#070707;
+      box-shadow:0 0 14px rgba(0,229,255,0.25);
+    }
+    .op-card img{width:64px; height:64px; object-fit:contain; border-radius:10px;}
+    .op-card span{font-size:14px; font-weight:700;}
+    .op-card{cursor:pointer;}
+
+    .modal-overlay{
+      position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:1500;
+      display:none; align-items:center; justify-content:center; padding:16px;
+    }
+    .modal-overlay.show{display:flex;}
+    .recharge-box{
+      width:100%; max-width:420px; border:2px solid var(--magenta); border-radius:16px;
+      padding:18px; box-shadow:0 0 22px rgba(255,45,212,0.5); background:#050505;
+      max-height:90vh; overflow-y:auto;
+    }
+    .recharge-box h3{text-align:center; margin-bottom:14px; font-size:20px; letter-spacing:1px;}
+    .instruction-box{border:1.5px solid var(--red); border-radius:10px; padding:14px; margin-bottom:16px; min-height:70px;}
+    .instruction-box .lbl{color:var(--red); font-weight:700; margin-bottom:8px; text-decoration:underline;}
+    .instruction-box p{color:var(--yellow); font-size:13.5px; line-height:1.6;}
+    .field-label{font-size:13px; color:var(--cyan); margin-bottom:6px; display:block;}
+    .field-input{
+      width:100%; padding:12px; border-radius:10px; border:1.5px solid var(--blue);
+      background:#000; color:#fff; font-size:14px; margin-bottom:16px; box-shadow:0 0 8px rgba(41,121,255,0.25);
+    }
+    .btn-row{display:flex; gap:12px;}
+    .btn-row button{flex:1; padding:13px; border-radius:10px; font-weight:700; border:none; cursor:pointer;}
+    .btn-row .cancel{background:#3a0000; color:#ff8fa3; border:1.5px solid var(--red);}
+    .btn-row .confirm{background:#001a00; color:#8fffb0; border:1.5px solid var(--green);}
+
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <button class="icon-btn" onclick="openMenu()"><i class="fa-solid fa-bars"></i></button>
+    <div class="title">HM-NAYEM-TELECOM<br>BANGLADESH</div>
+    <button class="icon-btn" onclick="window.location.href='notifications.html'">
+      <i class="fa-solid fa-bell"></i><span class="bell-dot" id="bellDot"></span>
+    </button>
+  </div>
+<div id="loading" class="loading-wrap"><div class="spinner"></div></div>
+<div id="main-content" class="hidden">
+
+
+<div class="container"><div class="op-title">সকল সিমে রিচার্জ করুন</div><div class="op-grid">
+    <div class="op-card" onclick="openRechargeModal('grameenphone','Grameenphone')">
+      <img src="png/grameenphone.png" alt="Grameenphone" onerror="this.src='https://placehold.co/64x64/000/0ff?text=Gr'">
+      <span>Grameenphone</span>
+    </div>
+    <div class="op-card" onclick="openRechargeModal('skitto','Skitto')">
+      <img src="png/skitto.png" alt="Skitto" onerror="this.src='https://placehold.co/64x64/000/0ff?text=Sk'">
+      <span>Skitto</span>
+    </div>
+    <div class="op-card" onclick="openRechargeModal('airtel','Airtel')">
+      <img src="png/airtel.png" alt="Airtel" onerror="this.src='https://placehold.co/64x64/000/0ff?text=Ai'">
+      <span>Airtel</span>
+    </div>
+    <div class="op-card" onclick="openRechargeModal('robi','Robi')">
+      <img src="png/robi.png" alt="Robi" onerror="this.src='https://placehold.co/64x64/000/0ff?text=Ro'">
+      <span>Robi</span>
+    </div>
+    <div class="op-card" onclick="openRechargeModal('banglalink','Banglalink')">
+      <img src="png/banglalink.png" alt="Banglalink" onerror="this.src='https://placehold.co/64x64/000/0ff?text=Ba'">
+      <span>Banglalink</span>
+    </div>
+    <div class="op-card" onclick="openRechargeModal('teletalk','Teletalk')">
+      <img src="png/teletalk.png" alt="Teletalk" onerror="this.src='https://placehold.co/64x64/000/0ff?text=Te'">
+      <span>Teletalk</span>
+    </div>
+    <div class="op-card" onclick="openRechargeModal('brilliant','Brilliant')">
+      <img src="png/brilliant.png" alt="Brilliant" onerror="this.src='https://placehold.co/64x64/000/0ff?text=Br'">
+      <span>Brilliant</span>
+    </div>
+    <div class="op-card" onclick="openRechargeModal('alap','Alap')">
+      <img src="png/alap.png" alt="Alap" onerror="this.src='https://placehold.co/64x64/000/0ff?text=Al'">
+      <span>Alap</span>
+    </div>
+    </div></div>
+</div>
+
+<!-- রিচার্জ মডাল -->
+<div class="modal-overlay" id="rechargeModal">
+  <div class="recharge-box">
+    <h3 id="opTitle">Grameenphone</h3>
+    <div class="instruction-box">
+      <div class="lbl">নির্দেশনা</div>
+      <p>সঠিক মোবাইল নাম্বার ও টাকার পরিমাণ দিন (সর্বনিম্ন ২০ টাকা)। এডমিন যাচাই করে রিচার্জ সম্পন্ন করবে।</p>
+    </div>
+    <label class="field-label">মোবাইল নাম্বার</label>
+    <input type="tel" class="field-input" id="mobileNumber" placeholder="যে নাম্বারে রিচার্জ করতে চান,....">
+    <label class="field-label">কত টাকা রিচার্জ করতে চান</label>
+    <input type="number" class="field-input" id="rechargeAmount" placeholder="সর্বনিম্ন ২০ টাকা">
+    <div class="btn-row">
+      <button class="cancel" onclick="closeRechargeModal()">বাতিল</button>
+      <button class="confirm" onclick="submitRecharge()">ওকে</button>
+    </div>
+  </div>
+</div>
+<a href="chat.html" class="fab-support"><i class="fa-solid fa-headset"></i></a>
+
+<div class="bottom-nav">
+  <a href="home.html" class="nav-item active"><span class="nav-icon"><i class="fa-solid fa-house"></i></span>হোম</a>
+  <a href="chat.html" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-comment-dots"></i></span>ইনবক্স</a>
+  <a href="profile.html" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-user"></i></span>প্রফাইল</a>
+</div>
+
+
+<div class="side-menu-overlay" id="menuOverlay" onclick="closeMenu()"></div>
+<div class="side-menu" id="sideMenu">
+  <button class="close-menu" onclick="closeMenu()"><i class="fa-solid fa-xmark"></i></button>
+  <div class="side-menu-header">
+    <img src="png/logo.png" alt="logo" onerror="this.src='https://placehold.co/46x46/000/0ff?text=HM'">
+    <div>
+      <div class="name">HM-NAYEM-TELECOM<br>BANGLADESH</div>
+      <div class="ver">Version: 0.9.205</div>
+    </div>
+  </div>
+  <hr>
+  <a href="privacy-policy.html">Privacy and Policy</a>
+  <a href="rules.html">Rules</a>
+  <a href="about.html">About</a>
+  <a href="developer-info.html">Developer Info</a>
+</div>
+
+<script src="firebase-config.js"></script>
+<script>
+
+  function openMenu(){
+    document.getElementById('sideMenu').classList.add('open');
+    document.getElementById('menuOverlay').classList.add('show');
+  }
+  function closeMenu(){
+    document.getElementById('sideMenu').classList.remove('open');
+    document.getElementById('menuOverlay').classList.remove('show');
+  }
+
+  let curUser = null;
+  let curOpKey = null;
+
+  // ৫ মিনিটের কুলডাউন সময় ( ৩০০,০০০ মিলি-সেকেন্ড )
+  const COOLDOWN_TIME = 5 * 60 * 1000; 
+
+  function openRechargeModal(opKey, opName){
+    curOpKey = opKey;
+    document.getElementById('opTitle').textContent = opName;
+    document.getElementById('mobileNumber').value = '';
+    document.getElementById('rechargeAmount').value = '';
+    document.getElementById('rechargeModal').classList.add('show');
+  }
+  function closeRechargeModal(){
+    document.getElementById('rechargeModal').classList.remove('show');
+  }
+
+  function submitRecharge(){
+    const number = document.getElementById('mobileNumber').value.trim();
+    const amount = parseFloat(document.getElementById('rechargeAmount').value);
+    
+    // ১. নম্বর যাচাই
+    if(!/^01[0-9]{9}$/.test(number)){ 
+      showToast('সঠিক ১১ ডিজিটের মোবাইল নাম্বার দিন','error'); 
+      return; 
+    }
+    
+    // ২. সর্বনিম্ন ২০ টাকা রিচার্জ ফিল্টার
+    if(!amount || amount < 20){ 
+      showToast('সর্বনিম্ন ২০ টাকা রিচার্জ করতে হবে','error'); 
+      return; 
+    }
+    
+    if(!curUser) return;
+
+    // ৩. ৫ মিনিটের কুলডাউন (টাইমার) চেক
+    const lastRechargeKey = 'lastRechargeTime_' + curUser.uid;
+    const lastRechargeTime = localStorage.getItem(lastRechargeKey);
+    const currentTime = Date.now();
+
+    if(lastRechargeTime && (currentTime - Number(lastRechargeTime)) < COOLDOWN_TIME){
+      const remainingSeconds = Math.ceil((COOLDOWN_TIME - (currentTime - Number(lastRechargeTime))) / 1000);
+      const minutes = Math.floor(remainingSeconds / 60);
+      const seconds = remainingSeconds % 60;
+      showToast(`অপেক্ষা করুন! পরবর্তী রিচার্জ করতে ${minutes} মি: ${seconds} সে: বাকি`, 'error');
+      return;
+    }
+
+    const confirmBtn = document.querySelector('.recharge-box .btn-row .confirm');
+    if(confirmBtn){
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'যাচাই হচ্ছে...';
+    }
+
+    // ৪. ব্যালেন্স রিড করে সাথে সাথে কেটে নেওয়া হচ্ছে (prepaid) — rules-ই নেগেটিভ ব্যালেন্স আটকায়
+    const balRef = db.ref('users/' + curUser.uid + '/walletBalance');
+    balRef.once('value').then((snap) => {
+      const balance = Number(snap.val()) || 0;
+      const balancePoisha = Math.round(balance * 100);
+      const amountPoisha = Math.round(amount * 100);
+      const newBalance = (balancePoisha - amountPoisha) / 100;
+
+      if (confirmBtn) confirmBtn.textContent = 'প্রসেসিং...';
+
+      return balRef.set(newBalance).then(() => {
+        return db.ref('orders').push({
+          userId: curUser.uid, 
+          operator: curOpKey, 
+          category: 'recharge', 
+          type: 'simple-recharge',
+          number: number, 
+          amount: amount, 
+          status: 'pending',
+          prepaid: true,
+          createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+      }).then(() => {
+        localStorage.setItem(lastRechargeKey, currentTime.toString());
+
+        closeRechargeModal();
+        showToast('রিচার্জ রিকোয়েস্ট জমা হয়েছে! এডমিন প্রসেস করবেন।', 'success');
+        setTimeout(() => window.location.href = 'home.html', 1200);
+      });
+    }).catch((err) => {
+      if (err && err.code === 'PERMISSION_DENIED') {
+        showToast('পর্যাপ্ত ব্যালেন্স নেই', 'error');
+      } else {
+        showToast('কিছু একটা সমস্যা হয়েছে, আবার চেষ্টা করুন','error');
+      }
+    }).finally(() => {
+      if(confirmBtn){
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'ওকে';
+      }
+    });
+  }
+
+requireAuth((user)=>{ 
+  curUser = user; 
+  checkBlockedStatus(user.uid); 
+  document.getElementById('loading').classList.add('hidden'); 
+  document.getElementById('main-content').classList.remove('hidden'); 
+});
+</script>
+</body>
+</html>

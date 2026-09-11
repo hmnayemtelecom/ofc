@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HM-NAYEM-TELECOM BANGLADESH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+  :root{ --bg:#050507; --cyan:#00f0ff; --red:#ff2740; --gold:#ffcc4d; }
+  *{box-sizing:border-box; margin:0; padding:0; font-family:'Hind Siliguri', sans-serif;}
+  html,body{ min-height:100%; background:var(--bg); overflow-x:hidden; }
+  body{ display:flex; align-items:center; justify-content:center; position:relative; min-height:100vh; padding:15px; }
+
+  /* ================= স্প্ল্যাশ স্ক্রিন ================= */
+  .bg-glow{ position:fixed; inset:0;
+    background:radial-gradient(circle at 20% 20%, rgba(0,240,255,0.10), transparent 40%),
+               radial-gradient(circle at 80% 75%, rgba(255,39,64,0.10), transparent 45%);
+    animation: drift 8s ease-in-out infinite alternate; pointer-events:none; }
+  @keyframes drift{ from{opacity:0.6;} to{opacity:1;} }
+  .scanlines{ position:fixed; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(to bottom, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 2px, transparent 3px); }
+
+  .splash{ position:relative; display:flex; flex-direction:column; align-items:center; gap:24px; padding:0 24px; z-index:2;
+    transition:opacity 0.4s ease, transform 0.4s ease; }
+  .splash.fade-out{ opacity:0; transform:scale(0.96); pointer-events:none; display:none; }
+
+  .ring-wrap{ position:relative; width:130px; height:130px; display:flex; align-items:center; justify-content:center; }
+  .ring{ position:absolute; inset:0; border-radius:50%; border:2px solid transparent; }
+  .ring--outer{ border-top:2px solid var(--cyan); border-right:2px solid transparent; box-shadow:0 0 18px rgba(0,240,255,0.55); animation: spin 1.6s linear infinite; }
+  .ring--mid{ inset:12px; border-bottom:2px solid var(--red); border-left:2px solid transparent; box-shadow:0 0 16px rgba(255,39,64,0.5); animation: spinRev 2.1s linear infinite; }
+  .ring--inner{ inset:24px; border:1px solid rgba(255,204,77,0.5); box-shadow: inset 0 0 12px rgba(255,204,77,0.35), 0 0 10px rgba(255,204,77,0.25); animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+  @keyframes spinRev{ to{ transform: rotate(-360deg); } }
+  @keyframes pulse{ 0%,100%{ transform:scale(1); opacity:0.7; } 50%{ transform:scale(1.08); opacity:1; } }
+  .sim-mark{ font-family:'Cinzel', serif; font-weight:900; font-size:28px; letter-spacing:3px; color:#fff;
+    text-shadow:0 0 6px rgba(0,240,255,0.9), 0 0 18px rgba(0,240,255,0.6), 0 0 34px rgba(255,39,64,0.35); }
+  .brand{ text-align:center; }
+  .brand-title{ font-family:'Cinzel', serif; font-weight:700; font-size:18px; letter-spacing:1px; color:#fff;
+    text-shadow:0 0 10px rgba(0,240,255,0.5), 0 0 22px rgba(255,39,64,0.25); line-height:1.4; }
+  .brand-sub{ margin-top:6px; font-size:12px; color:rgba(255,255,255,0.45); letter-spacing:2px; text-transform:uppercase; }
+  .loader-track{ width:180px; height:4px; border-radius:4px; background:rgba(255,255,255,0.08); overflow:hidden; position:relative; box-shadow: inset 0 0 4px rgba(0,0,0,0.6); }
+  .loader-fill{ position:absolute; left:0; top:0; bottom:0; width:0%; border-radius:4px;
+    background:linear-gradient(90deg, var(--red), var(--gold), var(--cyan)); box-shadow:0 0 10px rgba(0,240,255,0.7); transition:width 0.15s linear; }
+  .status-text{ font-size:12px; color:rgba(255,255,255,0.55); letter-spacing:1px; min-height:16px; }
+  .status-text span{ color:var(--cyan); }
+  .version{ position:fixed; bottom:15px; left:50%; transform:translateX(-50%); font-size:10px; color:rgba(255,255,255,0.25); letter-spacing:2px; }
+
+  /* ================= লগইন / সাইনআপ ================= */
+  .wrapper{ position:relative; width:100%; max-width:380px; padding-top:45px; opacity:0; transform:translateY(16px); transition:opacity 0.5s ease, transform 0.5s ease; display:none; margin: auto; }
+  .wrapper.show{ display:block; }
+  .wrapper.show.in{ opacity:1; transform:translateY(0); }
+
+  .logo-circle{
+    position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:90px; height:90px; background:#15181f; border-radius:50%; z-index:20;
+    display:flex; justify-content:center; align-items:center;
+    border:2px solid #35eaff; box-shadow:0 0 15px rgba(53,234,255,0.4), inset 0 0 10px rgba(53,234,255,0.2);
+    overflow:hidden;
+  }
+  .logo-circle img{ width:100%; height:100%; object-fit:cover; }
+
+  .box{
+    position:relative; width:100%; background:#1c1f26; border-radius:20px;
+    overflow:hidden; display:flex; flex-direction:column; justify-content:flex-start; align-items:center;
+    transition:all 0.4s ease;
+  }
+  .box::before{
+    content:""; position:absolute; inset:50%; width:170cqmax; height:170cqmax; translate:-50% -50%;
+    background:conic-gradient(from 0deg, transparent 0deg 36deg, #35eaff 36deg 48deg, transparent 48deg 126deg,
+      #ff0a6c 126deg 138deg, transparent 138deg 216deg, #35eaff 216deg 228deg, transparent 228deg 306deg,
+      #ff0a6c 306deg 318deg, transparent 318deg 360deg);
+    filter:blur(1px) drop-shadow(0 0 12px #35eaff); animation: neon-rotate 5s linear infinite;
+  }
+  .box::after{ content:''; position:absolute; inset:3px; background:#1c1f26; border-radius:17px; }
+  @keyframes neon-rotate{ 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
+
+  .tab-nav{ position:relative; z-index:10; display:flex; flex-direction:column; width:100%; padding:55px 20px 25px 20px; align-items:center; }
+  .main-title{ color:#fff; font-size:1rem; font-weight:500; letter-spacing:0.04em; text-align:center; margin-bottom:20px; text-shadow:0 0 8px rgba(255,255,255,0.2); word-break: break-word; }
+  .btn-group{ display:flex; width:100%; gap:10px; }
+  .tab-btn{ flex:1; text-align:center; padding:12px 8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); color:#fff; font-size:0.95rem; font-weight:600; cursor:pointer; border-radius:10px; transition:0.3s; white-space: nowrap; }
+  .btn-login:hover, .btn-login.active{ background:#35eaff; color:#000; box-shadow:0 0 15px #35eaff; border-color:#35eaff; }
+  .btn-signup:hover, .btn-signup.active{ background:#ff0a6c; color:#fff; box-shadow:0 0 15px #ff0a6c; border-color:#ff0a6c; }
+
+  .content{ position:relative; width:100%; padding:55px 20px 25px 20px; z-index:10; display:none; opacity:0; transition:opacity 0.3s ease; }
+
+  .box.show-login .login-view,
+  .box.show-signup .signup-view{ display:block; opacity:1; }
+  .box.show-login .tab-nav,
+  .box.show-signup .tab-nav{ display:none; }
+
+  .content h2{ color:#fff; font-size:1.1rem; font-weight:500; letter-spacing:0.05em; text-align:center; margin-bottom:12px; }
+
+  form{ width:100%; }
+  .field-block{ width:100%; margin-bottom:12px; }
+  .field-block label{ display:block; color:#fff; font-size:0.8rem; margin-bottom:4px; padding-left:2px; }
+  .field-block label::before{ content:"• "; color:#35eaff; }
+
+  .input-box, .btn-wrapper{ position:relative; width:100%; border-radius:10px; overflow:hidden; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); transition:border-color 0.3s; }
+  .input-box:hover::before, .btn-wrapper:hover::before{
+    content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%;
+    background:conic-gradient(#35eaff, #ff0a6c, transparent, transparent); animation: input-rotate 2s linear infinite; z-index:1;
+  }
+  @keyframes input-rotate{ 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
+
+  .input-box input, .input-box select, .btn-wrapper input[type="submit"]{
+    position:relative; z-index:2; width:calc(100% - 4px); margin:2px; padding:10px 10px; background:#15181f;
+    border:none; outline:none; border-radius:8px; color:#fff; font-size:0.88rem; display:block;
+  }
+  .input-box select { color:#aaa; }
+  .input-box select option { background:#15181f; color:#fff; }
+
+  .btn-wrapper{ margin-top:16px; }
+  .btn-wrapper input[type="submit"]{ cursor:pointer; font-weight:600; font-size:0.95rem; text-align:center; width:calc(100% - 4px); }
+  .btn-wrapper input[type="submit"]:disabled{ opacity:0.6; cursor:not-allowed; }
+  .login-wrapper input[type="submit"]{ background:linear-gradient(90deg, #35eaff, #00b4d8); color:#000; }
+  .signup-wrapper input[type="submit"]{ background:linear-gradient(90deg, #ff0a6c, #b5179e); color:#fff; }
+
+  .border-yellow{ border-color:rgba(234,179,8,0.4); }
+  .border-red{ border-color:rgba(239,68,68,0.4); }
+  .border-blue{ border-color:rgba(59,130,246,0.4); }
+  .row-grid{ display:flex; gap:10px; width:100%; }
+  .back-link{ display:block; text-align:center; margin-top:12px; color:rgba(255,255,255,0.5); font-size:12px; cursor:pointer; }
+  .form-error{ color:var(--red); font-size:11.5px; text-align:center; margin-top:8px; min-height:14px; }
+</style>
+</head>
+<body>
+
+  <!-- ================= স্প্ল্যাশ স্ক্রিন ================= -->
+  <div class="bg-glow"></div>
+  <div class="scanlines"></div>
+  <div class="splash" id="splash">
+    <div class="ring-wrap">
+      <div class="ring ring--outer"></div>
+      <div class="ring ring--mid"></div>
+      <div class="ring ring--inner"></div>
+      <div class="sim-mark">SIM</div>
+    </div>
+    <div class="brand">
+      <div class="brand-title">HM-NAYEM-TELECOM<br>BANGLADESH</div>
+      <div class="brand-sub">Recharge Network</div>
+    </div>
+    <div class="loader-track"><div class="loader-fill" id="loaderFill"></div></div>
+    <div class="status-text" id="statusText">লোড হচ্ছে<span>...</span></div>
+  </div>
+  <div class="version">VERSION 0.9.205</div>
+
+  <!-- ================= লগইন / সাইনআপ বক্স ================= -->
+  <div class="wrapper" id="authWrapper">
+
+    <div class="logo-circle">
+      <img src="png/logo.png" alt="Logo" onerror="this.src='https://placehold.co/100x100/15181f/35eaff?text=HM'">
+    </div>
+
+    <div class="box" id="mainBox">
+
+      <!-- প্রথম স্ক্রিন -->
+      <div class="tab-nav">
+        <h1 class="main-title">HM NAYEM TELECOM - এ আপনাকে স্বাগতম</h1>
+        <div class="btn-group">
+          <div class="tab-btn btn-login" id="triggerLogin">লগ-ইন করুন</div>
+          <div class="tab-btn btn-signup" id="triggerSignup">সাইন-আপ করুন</div>
+        </div>
+      </div>
+
+      <!-- ১. লগইন ফর্ম -->
+      <div class="content login-view">
+        <h2>HM NAYEM TELECOM - এ</h2>
+        <h2>🔒 লগ-ইন করুন 🔓</h2>
+        <form id="loginForm">
+          <div class="field-block">
+            <label>জিমেইল</label>
+            <div class="input-box"><input type="email" id="loginEmail" placeholder="hmnayemtelecom205@gmail.com" required></div>
+          </div>
+          <div class="field-block">
+            <label>পাসওয়ার্ড</label>
+            <div class="input-box"><input type="password" id="loginPassword" placeholder="******" required></div>
+          </div>
+          <div class="btn-wrapper login-wrapper">
+            <input type="submit" id="loginSubmitBtn" value="Login">
+          </div>
+          <div class="form-error" id="loginError"></div>
+          <div class="back-link" id="backFromLogin">← ফিরে যান</div>
+        </form>
+      </div>
+
+      <!-- ২. সাইনআপ ফর্ম -->
+      <div class="content signup-view">
+        <h2>HM NAYEM TELECOM -এ</h2>
+        <h2>🪪 সাইন-আপ করুন 🔒</h2>
+        <form id="signupForm">
+          <div class="field-block">
+            <label>জিমেইল</label>
+            <div class="input-box border-yellow"><input type="email" id="signupEmail" placeholder="hmnayemtelecom2007@gmail.com" required></div>
+          </div>
+          <div class="field-block">
+            <label>মোবাইল নাম্বার</label>
+            <div class="input-box border-red"><input type="text" id="signupMobile" placeholder="017********" required></div>
+          </div>
+          <div class="field-block">
+            <label>ফার্স্ট নাম</label>
+            <div class="input-box"><input type="text" id="signupFirstName" placeholder="MR. MOSTAFIZUR" required></div>
+          </div>
+          <div class="field-block">
+            <label>লাস্ট নাম</label>
+            <div class="input-box border-blue"><input type="text" id="signupLastName" placeholder="RAHOMAN" required></div>
+          </div>
+          <div class="field-block">
+            <label>পাসওয়ার্ড (কমপক্ষে ৬ ডিজিটের)</label>
+            <div class="input-box"><input type="password" id="signupPassword" placeholder="******" minlength="6" required></div>
+          </div>
+          <div class="field-block">
+            <label>কনফর্ম পাসওয়ার্ড</label>
+            <div class="input-box border-red"><input type="password" id="signupConfirmPassword" placeholder="******" minlength="6" required></div>
+          </div>
+          <div class="row-grid">
+            <div style="flex: 1;" class="field-block">
+              <label>বিভাগ</label>
+              <div class="input-box">
+                <select id="divisionSelect"><option value="">সিলেক্ট</option></select>
+              </div>
+            </div>
+            <div style="flex: 1;" class="field-block">
+              <label>জেলা</label>
+              <div class="input-box">
+                <select id="districtSelect"><option value="">সিলেক্ট</option></select>
+              </div>
+            </div>
+          </div>
+          <div class="btn-wrapper signup-wrapper">
+            <input type="submit" id="signupSubmitBtn" value="সাইন-আপ করুন">
+          </div>
+          <div class="form-error" id="signupError"></div>
+          <div class="back-link" id="backFromSignup">← ফিরে যান</div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+<script src="firebase-config.js"></script>
+<script>
+  /* ================= স্প্ল্যাশ প্রোগ্রেস ================= */
+  const fill = document.getElementById('loaderFill');
+  const statusText = document.getElementById('statusText');
+  const messages = ['সংযোগ স্থাপন করা হচ্ছে','নেটওয়ার্ক যাচাই করা হচ্ছে','ডেটা লোড করা হচ্ছে','প্রায় শেষ'];
+  let progress = 0, msgIndex = 0;
+
+  const progressInterval = setInterval(() => {
+    const remaining = 100 - progress;
+    progress += Math.max(0.6, remaining * 0.06);
+    if (progress >= 100) {
+      progress = 100;
+      clearInterval(progressInterval);
+      setTimeout(showAuthOrRedirect, 350);
+    }
+    fill.style.width = progress + '%';
+    const stage = Math.min(messages.length - 1, Math.floor((progress / 100) * messages.length));
+    if (stage !== msgIndex) { msgIndex = stage; statusText.innerHTML = messages[msgIndex] + '<span>...</span>'; }
+  }, 90);
+
+  function showAuthOrRedirect(){
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        window.location.href = 'home.html';
+      } else {
+        document.getElementById('splash').classList.add('fade-out');
+        const wrap = document.getElementById('authWrapper');
+        wrap.classList.add('show');
+        requestAnimationFrame(() => wrap.classList.add('in'));
+      }
+    });
+  }
+
+  /* ================= লগইন/সাইনআপ বক্স টগল ================= */
+  const mainBox = document.getElementById('mainBox');
+  document.getElementById('triggerLogin').addEventListener('click', () => { mainBox.className = 'box show-login'; });
+  document.getElementById('triggerSignup').addEventListener('click', () => { mainBox.className = 'box show-signup'; });
+  document.getElementById('backFromLogin').addEventListener('click', (e) => { e.preventDefault(); mainBox.className = 'box'; });
+  document.getElementById('backFromSignup').addEventListener('click', (e) => { e.preventDefault(); mainBox.className = 'box'; });
+
+  /* ================= বিভাগ/জেলা ডেটা ================= */
+  const bdData = {
+    "বরিশাল": ["বরগুনা", "বরিশাল", "ভোলা", "ঝালকাঠি", "পটুয়াখালী", "পিরোজপুর"],
+    "ঢাকা": ["ঢাকা", "গাজীপুর", "নারায়ণগঞ্জ", "নরসিংদী", "মানিকগঞ্জ", "মুন্সিগঞ্জ", "ফরিদপুর", "গোপালগঞ্জ", "মাদারীপুর", "রাজবাড়ী", "শরীয়তপুর", "টাঙ্গাইল", "কিশোরগঞ্জ"],
+    "চট্টগ্রাম": ["চট্টগ্রাম", "কক্সবাজার", "ব্রাহ্মণবাড়ীয়া", "চাঁদপুর", "কুমিল্লা", "ফেনী", "লক্ষ্মীপুর", "নোয়াখালী", "খাগড়াছড়ি", "বান্দরবান", "রাঙ্গামাটি"],
+    "খুলনা": ["বাগেরহাট", "চুয়াডাঙ্গা", "যশোর", "ঝিনাইদহ", "খুলনা", "কুষ্টিয়া", "মাগুরা", "মেহেরপুর", "নড়াইল", "সাতক্ষীরা"],
+    "রাজশাহী": ["বগুড়া", "জয়পুরহাট", "নওগাঁ", "নাটোর", "নবাবগঞ্জ", "পাবনা", "রাজশাহী", "সিরাজগঞ্জ"],
+    "রংপুর": ["দিনাজপুর", "গাইবান্ধা", "কুড়িগ্রাম", "লালমনিরহাট", "নীলফামারী", "পঞ্চগড়", "রংপুর", "ঠাকুরগাঁও"],
+    "সিলেট": ["হবিগঞ্জ", "মৌলভীবাজার", "সুনামগঞ্জ", "সিলেট"],
+    "ময়মনসিংহ": ["ময়মনসিংহ", "জামালপুর", "নেত্রকোনা", "শেরপুর"]
+  };
+  const divisionSelect = document.getElementById('divisionSelect');
+  const districtSelect = document.getElementById('districtSelect');
+  Object.keys(bdData).forEach(division => {
+    const option = document.createElement('option');
+    option.value = division; option.textContent = division;
+    divisionSelect.appendChild(option);
+  });
+  divisionSelect.addEventListener('change', function () {
+    districtSelect.innerHTML = '<option value="">সিলেক্ট</option>';
+    if (this.value && bdData[this.value]) {
+      bdData[this.value].forEach(district => {
+        const option = document.createElement('option');
+        option.value = district; option.textContent = district;
+        districtSelect.appendChild(option);
+      });
+    }
+  });
+
+  /* ================= লগইন সাবমিট ================= */
+  document.getElementById('loginForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errorBox = document.getElementById('loginError');
+    const btn = document.getElementById('loginSubmitBtn');
+    errorBox.textContent = '';
+    btn.disabled = true; btn.value = 'অপেক্ষা করুন...';
+
+    auth.signInWithEmailAndPassword(email, password)
+      .then(() => { window.location.href = 'home.html'; })
+      .catch((err) => {
+        btn.disabled = false; btn.value = 'Login';
+        errorBox.textContent = 'লগইন ব্যর্থ হয়েছে — ইমেইল বা পাসওয়ার্ড ভুল';
+      });
+  });
+
+  /* ================= সাইনআপ সাবমিট (সঠিক ডেটাবেস সেভ লজিক) ================= */
+  document.getElementById('signupForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const email = document.getElementById('signupEmail').value.trim();
+    const mobile = document.getElementById('signupMobile').value.trim();
+    const firstName = document.getElementById('signupFirstName').value.trim();
+    const lastName = document.getElementById('signupLastName').value.trim();
+    const password = document.getElementById('signupPassword').value;
+    const confirmPassword = document.getElementById('signupConfirmPassword').value;
+    const division = divisionSelect.value;
+    const district = districtSelect.value;
+    const errorBox = document.getElementById('signupError');
+    const btn = document.getElementById('signupSubmitBtn');
+    errorBox.textContent = '';
+
+    if (!/^01[0-9]{9}$/.test(mobile)) { errorBox.textContent = 'সঠিক মোবাইল নাম্বার দিন'; return; }
+    if (password !== confirmPassword) { errorBox.textContent = 'পাসওয়ার্ড দুটো মিলছে না'; return; }
+    if (!division || !district) { errorBox.textContent = 'বিভাগ ও জেলা সিলেক্ট করুন'; return; }
+
+    btn.disabled = true; btn.value = 'অপেক্ষা করুন...';
+
+    const generatedCustomUid = Math.floor(1000000000 + Math.random() * 9000000000);
+
+    try {
+      // ১. একাউন্ট তৈরি
+      const cred = await auth.createUserWithEmailAndPassword(email, password);
+      const user = cred.user;
+
+      // ২. অথেনটিকেশন ডিসপ্লে নেম সেট করা
+      await user.updateProfile({ displayName: firstName });
+
+      // ৩. রিয়েলটাইম ডেটাবেসে সম্পুর্ন ডাটা সেভ নিশ্চিত করা (async/await)
+      await db.ref('users/' + user.uid).set({
+        customUid: generatedCustomUid,
+        name: firstName + ' ' + lastName,
+        firstName: firstName, 
+        lastName: lastName, 
+        email: email, 
+        mobile: mobile, 
+        division: division, 
+        district: district,
+        walletBalance: 0, 
+        totalSpent: 0, 
+        blocked: false,
+        createdAt: firebase.database.ServerValue.TIMESTAMP
+      });
+
+      // ৪. ডেটা সেভ সম্পন্ন হলে হোম পেজে রিডাইরেক্ট
+      window.location.href = 'home.html';
+
+    } catch (err) {
+      btn.disabled = false; btn.value = 'সাইন-আপ করুন';
+      if (err.code === 'auth/email-already-in-use') errorBox.textContent = 'এই ইমেইল দিয়ে আগেই অ্যাকাউন্ট আছে';
+      else if (err.code === 'auth/weak-password') errorBox.textContent = 'পাসওয়ার্ড কমপক্ষে ৬ ডিজিট হতে হবে';
+      else errorBox.textContent = 'সাইনআপ ব্যর্থ হয়েছে, আবার চেষ্টা করুন';
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>প্রফাইল - HM-NAYEM-TELECOM</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+    :root{
+      --bg:#050505; --panel:#0a0a0a; --cyan:#00e5ff; --red:#ff2d55;
+      --green:#00e676; --yellow:#ffd60a; --blue:#2979ff; --magenta:#ff2dd4;
+      --text:#f2f2f2; --muted:#9aa0a6;
+    }
+    *{box-sizing:border-box; margin:0; padding:0;}
+    body{
+      background:radial-gradient(circle at top, #101010 0%, #000 70%);
+      color:var(--text); font-family:'Segoe UI', Tahoma, sans-serif;
+      max-width:520px; margin:0 auto; min-height:100vh;
+      padding-bottom:78px; position:relative;
+    }
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 14px; border-bottom:2px solid var(--red);
+      box-shadow:0 0 18px rgba(255,45,85,0.45);
+      background:#000; position:sticky; top:0; z-index:500;
+    }
+    .topbar .title{
+      font-weight:800; font-size:15px; text-align:center; flex:1;
+      letter-spacing:0.5px; text-shadow:0 0 8px var(--cyan);
+    }
+    .icon-btn{
+      background:none; border:none; color:var(--cyan); font-size:22px;
+      cursor:pointer; text-shadow:0 0 8px var(--cyan); position:relative;
+    }
+    .container{padding:16px 14px;}
+    .bottom-nav{
+      position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+      width:100%; max-width:520px; display:flex; justify-content:space-around;
+      background:#000; border-top:2px solid var(--red); padding:10px 0 14px;
+      box-shadow:0 0 18px rgba(255,45,85,0.45); z-index:500;
+    }
+    .nav-item{
+      display:flex; flex-direction:column; align-items:center; gap:3px;
+      color:var(--muted); text-decoration:none; font-size:11px;
+    }
+    .nav-item.active{color:var(--cyan); text-shadow:0 0 8px var(--cyan);}
+    .nav-item .nav-icon{font-size:20px;}
+    .side-menu{
+      position:fixed; top:0; left:-320px; width:280px; height:100vh;
+      background:#000; border-right:2px solid var(--blue); z-index:2000;
+      transition:left 0.3s ease; padding:20px 18px; overflow-y:auto;
+      box-shadow:0 0 25px rgba(41,121,255,0.5);
+    }
+    .side-menu.open{left:0;}
+    .side-menu-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1999; display:none;}
+    .side-menu-overlay.show{display:block;}
+    .side-menu-header{display:flex; align-items:center; gap:12px; margin-bottom:6px; margin-top:20px;}
+    .side-menu-header img{width:46px; height:46px; border-radius:50%; border:2px solid var(--red); object-fit:cover;}
+    .side-menu-header .name{font-weight:800; font-size:14px;}
+    .side-menu-header .ver{font-size:11px; color:var(--muted);}
+    .side-menu hr{border:none; border-top:2px solid var(--blue); margin:14px 0;}
+    .side-menu a{
+      display:block; padding:13px 14px; margin-bottom:10px; border-radius:10px;
+      border:1.5px solid var(--cyan); color:#fff; text-decoration:none; font-size:14px;
+    }
+    .close-menu{position:absolute; top:16px; right:16px; background:none; border:none; color:#fff; font-size:20px;}
+    .fab-support{
+      position:fixed; bottom:88px; right:16px; width:52px; height:52px;
+      border-radius:50%; background:#111; border:2px solid var(--red);
+      display:flex; align-items:center; justify-content:center; font-size:24px;
+      box-shadow:0 0 16px rgba(255,45,85,0.7); z-index:400; text-decoration:none;
+    }
+    .loading-wrap{display:flex; align-items:center; justify-content:center; min-height:50vh;}
+    .spinner{width:44px; height:44px; border:4px solid #222; border-top-color:var(--cyan); border-radius:50%; animation:spin 0.8s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .hidden{display:none !important;}
+
+    .profile-card{border:2px solid var(--cyan); border-radius:16px; padding:20px; text-align:center; box-shadow:0 0 18px rgba(0,229,255,0.3); margin-bottom:20px; position:relative;}
+    .edit-icon{position:absolute; top:14px; left:14px; font-size:18px; color:var(--red); cursor:pointer;}
+    .profile-title{color:var(--green); font-size:20px; font-weight:700; text-decoration:underline; margin-bottom:16px;}
+    .avatar-wrap{position:relative; width:130px; height:130px; margin:0 auto 16px;}
+    .avatar-circle{
+      width:130px; height:130px; border-radius:50%; border:2px solid var(--blue);
+      object-fit:cover; background:#111;
+    }
+    .avatar-cam{
+      position:absolute; bottom:4px; right:4px; width:34px; height:34px; border-radius:50%;
+      background:#000; border:2px solid var(--blue); display:flex; align-items:center; justify-content:center;
+      cursor:pointer; font-size:15px;
+    }
+    .p-name{font-size:16px; margin-bottom:6px;}
+    .p-uid{font-size:13px; color:var(--muted); margin-bottom:16px; display:flex; align-items:center; justify-content:center; gap:8px; word-break:break-all;}
+    .copy-mini{padding:4px 12px; border-radius:20px; border:1px solid var(--cyan); background:#001820; color:var(--cyan); font-size:11px; cursor:pointer; flex-shrink:0;}
+    .logout-btn{
+      padding:11px 26px; border-radius:10px; border:1.5px solid var(--red); background:#1a0000;
+      color:#ff5c7a; font-weight:700; cursor:pointer;
+    }
+    .top10-title{text-align:center; color:var(--yellow); font-size:16px; font-weight:700; text-decoration:underline; margin:8px 0 14px;}
+    .rank-card{
+      display:flex; align-items:center; gap:12px; border:1.5px solid var(--red); border-radius:12px;
+      padding:12px; margin-bottom:12px;
+    }
+    .rank-medal{font-size:22px;}
+    .rank-avatar{width:52px; height:52px; border-radius:50%; border:2px solid var(--red); object-fit:cover; background:#111;}
+    .rank-info{flex:1; font-size:12.5px; line-height:1.6;}
+    .rank-info b{color:#fff;}
+
+    .modal-overlay{
+      position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:1500;
+      display:none; align-items:center; justify-content:center; padding:16px;
+    }
+    .modal-overlay.show{display:flex;}
+    .photo-modal-box{
+      width:100%; max-width:400px; border:2px solid var(--cyan); border-radius:16px;
+      padding:20px; background:#080808; box-shadow:0 0 20px rgba(0,229,255,0.4);
+    }
+    .photo-modal-box h3{text-align:center; margin-bottom:16px; color:var(--cyan); font-size:18px;}
+    .modal-option-btn{
+      width:100%; padding:12px; margin-bottom:12px; border-radius:10px;
+      border:1.5px solid var(--blue); background:#001220; color:#fff;
+      font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;
+    }
+    .or-divider{text-align:center; color:var(--muted); margin:10px 0; font-size:12px;}
+    .url-input{
+      width:100%; padding:12px; border-radius:10px; border:1.5px solid var(--magenta);
+      background:#000; color:#fff; font-size:13px; margin-bottom:14px;
+    }
+    .modal-btn-row{display:flex; gap:10px;}
+    .modal-btn-row button{flex:1; padding:10px; border-radius:8px; font-weight:700; border:none; cursor:pointer;}
+    .modal-btn-row .btn-cancel{background:#2a0000; color:#ff8fa3; border:1px solid var(--red);}
+    .modal-btn-row .btn-save{background:#002a00; color:#8fffb0; border:1px solid var(--green);}
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <button class="icon-btn" onclick="openMenu()"><i class="fa-solid fa-bars"></i></button>
+    <div class="title">প্রফাইল</div>
+    <button class="icon-btn" onclick="window.location.href='notifications.html'"><i class="fa-solid fa-bell"></i></button>
+  </div>
+<div id="loading" class="loading-wrap"><div class="spinner"></div></div>
+<div id="main-content" class="hidden">
+
+
+<div class="container">
+  <div class="profile-card">
+    <span class="edit-icon" onclick="openEditModal()"><i class="fa-solid fa-pen"></i></span>
+    <div class="profile-title">প্রফাইল</div>
+    <div class="avatar-wrap">
+      <img id="avatarImg" class="avatar-circle" src="" onerror="this.src='https://placehold.co/130x130/000/0ff?text=U'">
+      <div class="avatar-cam" onclick="openPhotoModal()"><i class="fa-solid fa-camera"></i></div>
+    </div>
+    <div class="p-name">নামঃ- <span id="pName">লোডিং...</span></div>
+    <div class="p-uid">UID:- <span id="pUid">লোডিং...</span> <button class="copy-mini" onclick="copyUid()">কপি</button></div>
+    <button class="logout-btn" onclick="doLogout()">⛔ লগআউট</button>
+  </div>
+
+  <div class="top10-title">Top 10 User List</div>
+  <div id="rankList"></div>
+</div>
+
+</div>
+
+<div class="modal-overlay" id="photoModal">
+  <div class="photo-modal-box">
+    <h3>প্রোফাইল ছবি পরিবর্তন করুন</h3>
+    <button class="modal-option-btn" onclick="document.getElementById('avatarInput').click()">
+      📁 গ্যালারি থেকে সিলেক্ট করুন
+    </button>
+    <input type="file" id="avatarInput" accept="image/*" style="display:none;" onchange="handleFileSelect(event)">
+    <div class="or-divider">—— অথবা Image URL ব্যবহার করুন ——</div>
+    <input type="url" id="photoUrlInput" class="url-input" placeholder="ছবির ডিরেক্ট URL পেস্ট করুন...">
+    <div class="modal-btn-row">
+      <button class="btn-cancel" onclick="closePhotoModal()">বাতিল</button>
+      <button class="btn-save" id="saveUrlBtn" onclick="savePhotoUrl()">সেভ করুন</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editModal">
+  <div class="photo-modal-box">
+    <h3>প্রোফাইল তথ্য এডিট করুন</h3>
+    <div class="field-block" style="margin-bottom:12px;">
+      <label style="font-size:12px;color:var(--muted);">ফার্স্ট নাম</label>
+      <input type="text" id="editFirstName" class="url-input" style="margin-bottom:0;">
+    </div>
+    <div class="field-block" style="margin-bottom:12px;">
+      <label style="font-size:12px;color:var(--muted);">লাস্ট নাম</label>
+      <input type="text" id="editLastName" class="url-input" style="margin-bottom:0;">
+    </div>
+    <div class="field-block" style="margin-bottom:12px;">
+      <label style="font-size:12px;color:var(--muted);">মোবাইল নাম্বার</label>
+      <input type="text" id="editMobile" class="url-input" style="margin-bottom:0;" placeholder="017********">
+    </div>
+    <div class="field-block" style="margin-bottom:12px;">
+      <label style="font-size:12px;color:var(--muted);">বিভাগ</label>
+      <select id="editDivision" class="url-input" style="margin-bottom:0;"><option value="">সিলেক্ট</option></select>
+    </div>
+    <div class="field-block" style="margin-bottom:14px;">
+      <label style="font-size:12px;color:var(--muted);">জেলা</label>
+      <select id="editDistrict" class="url-input" style="margin-bottom:0;"><option value="">সিলেক্ট</option></select>
+    </div>
+    <div id="editError" style="color:var(--red); font-size:12px; margin-bottom:10px; text-align:center;"></div>
+    <div class="modal-btn-row">
+      <button class="btn-cancel" onclick="closeEditModal()">বাতিল</button>
+      <button class="btn-save" id="saveEditBtn" onclick="saveEditProfile()">সেভ করুন</button>
+    </div>
+  </div>
+</div>
+
+<a href="chat.html" class="fab-support"><i class="fa-solid fa-headset"></i></a>
+
+<div class="bottom-nav">
+  <a href="home.html" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-house"></i></span>হোম</a>
+  <a href="chat.html" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-comment-dots"></i></span>ইনবক্স</a>
+  <a href="profile.html" class="nav-item active"><span class="nav-icon"><i class="fa-solid fa-user"></i></span>প্রফাইল</a>
+</div>
+
+<div class="side-menu-overlay" id="menuOverlay" onclick="closeMenu()"></div>
+<div class="side-menu" id="sideMenu">
+  <button class="close-menu" onclick="closeMenu()"><i class="fa-solid fa-xmark"></i></button>
+  <div class="side-menu-header">
+    <img src="png/logo.png" alt="logo" onerror="this.src='https://placehold.co/46x46/000/0ff?text=HM'">
+    <div>
+      <div class="name">HM-NAYEM-TELECOM<br>BANGLADESH</div>
+      <div class="ver">Version: 0.9.205</div>
+    </div>
+  </div>
+  <hr>
+  <a href="privacy-policy.html">Privacy and Policy</a>
+  <a href="rules.html">Rules</a>
+  <a href="about.html">About</a>
+  <a href="developer-info.html">Developer Info</a>
+</div>
+
+<script src="firebase-config.js"></script>
+<script>
+  function openMenu(){
+    document.getElementById('sideMenu').classList.add('open');
+    document.getElementById('menuOverlay').classList.add('show');
+  }
+  function closeMenu(){
+    document.getElementById('sideMenu').classList.remove('open');
+    document.getElementById('menuOverlay').classList.remove('show');
+  }
+
+  let currentUserObj = null;
+  const medals = ['🥇','🥈','🥉'];
+
+  /* ================= বিভাগ/জেলা ডেটা (index.html-এর সাথে মিল রেখে) ================= */
+  const bdData = {
+    "বরিশাল": ["বরগুনা", "বরিশাল", "ভোলা", "ঝালকাঠি", "পটুয়াখালী", "পিরোজপুর"],
+    "ঢাকা": ["ঢাকা", "গাজীপুর", "নারায়ণগঞ্জ", "নরসিংদী", "মানিকগঞ্জ", "মুন্সিগঞ্জ", "ফরিদপুর", "গোপালগঞ্জ", "মাদারীপুর", "রাজবাড়ী", "শরীয়তপুর", "টাঙ্গাইল", "কিশোরগঞ্জ"],
+    "চট্টগ্রাম": ["চট্টগ্রাম", "কক্সবাজার", "ব্রাহ্মণবাড়ীয়া", "চাঁদপুর", "কুমিল্লা", "ফেনী", "লক্ষ্মীপুর", "নোয়াখালী", "খাগড়াছড়ি", "বান্দরবান", "রাঙ্গামাটি"],
+    "খুলনা": ["বাগেরহাট", "চুয়াডাঙ্গা", "যশোর", "ঝিনাইদহ", "খুলনা", "কুষ্টিয়া", "মাগুরা", "মেহেরপুর", "নড়াইল", "সাতক্ষীরা"],
+    "রাজশাহী": ["বগুড়া", "জয়পুরহাট", "নওগাঁ", "নাটোর", "নবাবগঞ্জ", "পাবনা", "রাজশাহী", "সিরাজগঞ্জ"],
+    "রংপুর": ["দিনাজপুর", "গাইবান্ধা", "কুড়িগ্রাম", "লালমনিরহাট", "নীলফামারী", "পঞ্চগড়", "রংপুর", "ঠাকুরগাঁও"],
+    "সিলেট": ["হবিগঞ্জ", "মৌলভীবাজার", "সুনামগঞ্জ", "সিলেট"],
+    "ময়মনসিংহ": ["ময়মনসিংহ", "জামালপুর", "নেত্রকোনা", "শেরপুর"]
+  };
+  Object.keys(bdData).forEach(division => {
+    const opt = document.createElement('option');
+    opt.value = division; opt.textContent = division;
+    document.getElementById('editDivision').appendChild(opt);
+  });
+  document.getElementById('editDivision').addEventListener('change', function(){
+    const distSel = document.getElementById('editDistrict');
+    distSel.innerHTML = '<option value="">সিলেক্ট</option>';
+    if(this.value && bdData[this.value]){
+      bdData[this.value].forEach(dist => {
+        const opt = document.createElement('option');
+        opt.value = dist; opt.textContent = dist;
+        distSel.appendChild(opt);
+      });
+    }
+  });
+
+  function copyUid(){
+    const uidText = currentUserObj ? (currentUserObj.customUid || currentUserObj.uid) : '';
+    if(!uidText) return;
+    navigator.clipboard.writeText(uidText.toString()).then(() => alert('UID কপি হয়েছে'));
+  }
+
+  function doLogout(){
+    auth.signOut().then(() => window.location.href = 'index.html');
+  }
+
+  function extractFullName(val) {
+    if (!val) return '';
+    let name = '';
+    if (val.firstName) {
+      name = val.firstName + (val.lastName ? ' ' + val.lastName : '');
+    } else if (val.name) {
+      name = val.name;
+    } else if (val.displayName) {
+      name = val.displayName;
+    }
+    return name.trim();
+  }
+
+  function extractDistrict(val) {
+    if (!val) return 'অজানা জেলা';
+    return val.district || val.userDistrict || val.dist || 'অজানা জেলা';
+  }
+
+  let profileData = {};
+
+  function loadProfile(user){
+    currentUserObj = user;
+
+    db.ref('users/' + user.uid).on('value', snap => {
+      const d = snap.val() || {};
+      profileData = d;
+
+      const fullName = extractFullName(d) || user.displayName || 'নাম দেওয়া নেই';
+      document.getElementById('pName').textContent = fullName;
+
+      let customId = d.customUid || d.userId;
+
+      // সাইনআপে কোনো কারণে (নেটওয়ার্ক/ভ্যালিডেশন সমস্যা) প্রোফাইল অসম্পূর্ণ থেকে গেলে
+      // এখানে একবারে সব দরকারি ফিল্ড স্বয়ংক্রিয়ভাবে পূরণ করে দেওয়া হচ্ছে (শুধু customUid না)
+      if(!d.name && !d.firstName && !d.email){
+        if(!customId) customId = Math.floor(1000000000 + Math.random() * 9000000000);
+        const repair = {
+          customUid: customId,
+          name: user.displayName || (user.email ? user.email.split('@')[0] : 'ইউজার'),
+          email: user.email || d.email || '',
+        };
+        if(d.walletBalance === undefined) repair.walletBalance = 0;
+        if(d.totalSpent === undefined) repair.totalSpent = 0;
+        if(d.blocked === undefined) repair.blocked = false;
+        if(!d.createdAt) repair.createdAt = firebase.database.ServerValue.TIMESTAMP;
+        db.ref('users/' + user.uid).update(repair);
+      } else if(!customId) {
+        customId = Math.floor(1000000000 + Math.random() * 9000000000);
+        db.ref('users/' + user.uid).update({ customUid: customId });
+      }
+
+      document.getElementById('pUid').textContent = customId;
+      currentUserObj.customUid = customId;
+
+      if(d.photoUrl){
+        document.getElementById('avatarImg').src = d.photoUrl;
+      } else if(user.photoURL){
+        document.getElementById('avatarImg').src = user.photoURL;
+      }
+    });
+  }
+
+  function openEditModal(){
+    document.getElementById('editError').textContent = '';
+    document.getElementById('editFirstName').value = profileData.firstName || '';
+    document.getElementById('editLastName').value = profileData.lastName || '';
+    document.getElementById('editMobile').value = profileData.mobile || '';
+
+    const divSel = document.getElementById('editDivision');
+    divSel.value = profileData.division || '';
+    const distSel = document.getElementById('editDistrict');
+    distSel.innerHTML = '<option value="">সিলেক্ট</option>';
+    if(profileData.division && bdData[profileData.division]){
+      bdData[profileData.division].forEach(dist => {
+        const opt = document.createElement('option');
+        opt.value = dist; opt.textContent = dist;
+        distSel.appendChild(opt);
+      });
+      distSel.value = profileData.district || '';
+    }
+
+    document.getElementById('editModal').classList.add('show');
+  }
+
+  function closeEditModal(){
+    document.getElementById('editModal').classList.remove('show');
+  }
+
+  function saveEditProfile(){
+    const errorBox = document.getElementById('editError');
+    errorBox.textContent = '';
+
+    const firstName = document.getElementById('editFirstName').value.trim();
+    const lastName = document.getElementById('editLastName').value.trim();
+    const mobile = document.getElementById('editMobile').value.trim();
+    const division = document.getElementById('editDivision').value;
+    const district = document.getElementById('editDistrict').value;
+
+    if(!firstName){ errorBox.textContent = 'ফার্স্ট নাম দিন'; return; }
+    if(!/^01[0-9]{9}$/.test(mobile)){ errorBox.textContent = 'সঠিক ১১ ডিজিটের মোবাইল নাম্বার দিন'; return; }
+    if(!division || !district){ errorBox.textContent = 'বিভাগ ও জেলা সিলেক্ট করুন'; return; }
+    if(!currentUserObj) return;
+
+    const btn = document.getElementById('saveEditBtn');
+    btn.disabled = true;
+    btn.textContent = 'সেভ হচ্ছে...';
+
+    db.ref('users/' + currentUserObj.uid).update({
+      firstName: firstName,
+      lastName: lastName,
+      name: firstName + (lastName ? ' ' + lastName : ''),
+      mobile: mobile,
+      division: division,
+      district: district
+    }).then(() => {
+      closeEditModal();
+      showToast('প্রোফাইল সফলভাবে আপডেট হয়েছে', 'success');
+    }).catch(() => {
+      errorBox.textContent = 'আপডেট করা যায়নি, আবার চেষ্টা করুন';
+    }).finally(() => {
+      btn.disabled = false;
+      btn.textContent = 'সেভ করুন';
+    });
+  }
+
+
+  function openPhotoModal(){
+    document.getElementById('photoUrlInput').value = '';
+    document.getElementById('photoModal').classList.add('show');
+  }
+  
+  function closePhotoModal(){
+    document.getElementById('photoModal').classList.remove('show');
+  }
+
+  function savePhotoUrl(){
+    const url = document.getElementById('photoUrlInput').value.trim();
+    if(!url){ alert('অনুগ্রহ করে সঠিক ছবির URL দিন'); return; }
+    if(!currentUserObj) return;
+
+    const btn = document.getElementById('saveUrlBtn');
+    btn.disabled = true;
+    btn.textContent = 'সেভ হচ্ছে...';
+
+    db.ref('users/' + currentUserObj.uid).update({
+      photoUrl: url
+    }).then(() => {
+      alert('প্রোফাইল ছবি সফলভাবে আপডেট হয়েছে');
+      closePhotoModal();
+    }).catch(err => {
+      alert('ছবি আপডেট করতে ব্যর্থ হয়েছে');
+    }).finally(() => {
+      btn.disabled = false;
+      btn.textContent = 'সেভ করুন';
+    });
+  }
+
+  // ImgBB-তে ছবি আপলোড করতে এই API Key লাগবে — api.imgbb.com থেকে ফ্রি নিয়ে এখানে বসাও
+  const IMGBB_API_KEY = "3106ee3a2104a09f6e52a6a46d1df44a";
+
+  function handleFileSelect(event){
+    const file = event.target.files[0];
+    if(!file) return;
+
+    if(file.size > 5 * 1024 * 1024){
+      alert('ছবির সাইজ সর্বোচ্চ 5MB হতে পারবে');
+      return;
+    }
+    if(!currentUserObj) return;
+
+    const saveBtn = document.getElementById('saveUrlBtn');
+    if(saveBtn){ saveBtn.disabled = true; saveBtn.textContent = 'আপলোড হচ্ছে...'; }
+
+    const reader = new FileReader();
+    reader.onload = function(e){
+      // "data:image/xxx;base64," অংশটুকু বাদ দিয়ে শুধু base64 ডেটা ImgBB-তে পাঠানো হচ্ছে
+      const base64Data = e.target.result.split(',')[1];
+
+      const formData = new FormData();
+      formData.append('image', base64Data);
+
+      fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+        method: 'POST',
+        body: formData
+      })
+        .then(res => res.json())
+        .then(result => {
+          if(!result || !result.success || !result.data || !result.data.url){
+            throw new Error('ImgBB upload failed');
+          }
+          const imageUrl = result.data.url;
+
+          // ImgBB থেকে পাওয়া লিংকটাই users/{uid}/photoUrl-এ সেভ হচ্ছে —
+          // যেখানে যেখানে এই ফিল্ড থেকে প্রোফাইল ছবি দেখানো হয় (প্রোফাইল পেজ, চ্যাট,
+          // অ্যাডমিন প্যানেলের ইউজার/অর্ডার/ডিপোজিট লিস্ট ইত্যাদি) সব জায়গায় এখন এই লিংকই দেখাবে
+          return db.ref('users/' + currentUserObj.uid).update({ photoUrl: imageUrl });
+        })
+        .then(() => {
+          alert('প্রোফাইল ছবি সফলভাবে পরিবর্তন হয়েছে');
+          closePhotoModal();
+        })
+        .catch(() => {
+          alert('ছবি আপলোড/আপডেট করতে সমস্যা হয়েছে, আবার চেষ্টা করুন');
+        })
+        .finally(() => {
+          if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = 'সেভ করুন'; }
+        });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function loadTop10(){
+    const wrap = document.getElementById('rankList');
+    wrap.innerHTML = '<div style="text-align:center;color:#777;">লোড হচ্ছে...</div>';
+    db.ref('users').orderByChild('totalSpent').limitToLast(10).once('value').then(snap => {
+      wrap.innerHTML = '';
+      if(!snap.exists()){
+        wrap.innerHTML = '<div style="text-align:center;color:#777;">এখনো কোনো ডেটা নেই</div>';
+        return;
+      }
+
+      const list = [];
+      snap.forEach(child => {
+        const val = child.val();
+        list.push({
+          name: extractFullName(val) || 'নাম দেওয়া নেই',
+          district: extractDistrict(val),
+          totalSpent: val.totalSpent || 0,
+          photoUrl: val.photoUrl || ''
+        });
+      });
+
+      list.reverse();
+
+      let rank = 0;
+      list.forEach(d => {
+        const card = document.createElement('div');
+        card.className = 'rank-card';
+        // ইউজারের দেওয়া নাম/এলাকা/ছবি সবার সামনে দেখানো হয় বলে escape ও নিরাপদভাবে বসানো হচ্ছে (XSS আটকাতে)
+        const medalSpan = document.createElement('span');
+        medalSpan.className = 'rank-medal';
+        medalSpan.textContent = medals[rank] || (rank+1);
+        card.appendChild(medalSpan);
+
+        const img = document.createElement('img');
+        img.className = 'rank-avatar';
+        img.src = d.photoUrl || 'https://placehold.co/52x52/000/0ff?text=U';
+        img.onerror = function(){ this.onerror = null; this.src = 'https://placehold.co/52x52/000/0ff?text=U'; };
+        card.appendChild(img);
+
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'rank-info';
+        infoDiv.innerHTML = `
+          নামঃ- <b>${escapeHtml(d.name)}</b><br>
+          জেলাঃ- <b>${escapeHtml(d.district)}</b><br>
+          মোট খরচঃ- <b>৳${Number(d.totalSpent).toFixed(2)}</b>
+        `;
+        card.appendChild(infoDiv);
+
+        wrap.appendChild(card);
+        rank++;
+      });
+    }).catch(() => {
+      wrap.innerHTML = '<div style="text-align:center;color:#777;">তালিকা লোড করা যায়নি</div>';
+    });
+  }
+
+  // XSS আটকাতে — ইউজারের দেওয়া টেক্সট innerHTML-এ বসানোর আগে escape করা হয়
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  // ফায়ারবেস অথেন্টিকেশন অটো চেক
+  requireAuth((user) => {
+    checkBlockedStatus(user.uid);
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('main-content').classList.remove('hidden');
+
+    loadProfile(user);
+    loadTop10();
+  });
+</script>
+</body>
+</html>

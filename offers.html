@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>অফার লিস্ট - HM-NAYEM-TELECOM</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+
+    :root{
+      --bg:#050505; --panel:#0a0a0a; --cyan:#00e5ff; --red:#ff2d55;
+      --green:#00e676; --yellow:#ffd60a; --blue:#2979ff; --magenta:#ff2dd4;
+      --text:#f2f2f2; --muted:#9aa0a6;
+    }
+    *{box-sizing:border-box; margin:0; padding:0;}
+    body{
+      background:radial-gradient(circle at top, #101010 0%, #000 70%);
+      color:var(--text); font-family:'Segoe UI', Tahoma, sans-serif;
+      max-width:520px; margin:0 auto; min-height:100vh;
+      padding-bottom:78px; position:relative;
+    }
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 14px; border-bottom:2px solid var(--red);
+      box-shadow:0 0 18px rgba(255,45,85,0.45);
+      background:#000; position:sticky; top:0; z-index:500;
+    }
+    .topbar .title{
+      font-weight:800; font-size:15px; text-align:center; flex:1;
+      letter-spacing:0.5px; text-shadow:0 0 8px var(--cyan);
+    }
+    .icon-btn{
+      background:none; border:none; color:var(--cyan); font-size:22px;
+      cursor:pointer; text-shadow:0 0 8px var(--cyan); position:relative;
+    }
+    .back-btn{background:none;border:none;color:var(--cyan);font-size:20px;cursor:pointer;text-shadow:0 0 8px var(--cyan);}
+    .container{padding:16px 14px;}
+    .section-title{
+      text-align:center; color:var(--green); font-size:18px; font-weight:700;
+      border-bottom:2px solid var(--cyan); padding-bottom:10px; margin-bottom:16px;
+      text-shadow:0 0 8px var(--green);
+    }
+    .bottom-nav{
+      position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+      width:100%; max-width:520px; display:flex; justify-content:space-around;
+      background:#000; border-top:2px solid var(--red); padding:10px 0 14px;
+      box-shadow:0 0 18px rgba(255,45,85,0.45); z-index:500;
+    }
+    .nav-item{
+      display:flex; flex-direction:column; align-items:center; gap:3px;
+      color:var(--muted); text-decoration:none; font-size:11px;
+    }
+    .nav-item.active{color:var(--cyan); text-shadow:0 0 8px var(--cyan);}
+    .nav-item .nav-icon{font-size:20px;}
+    .side-menu{
+      position:fixed; top:0; left:-320px; width:280px; height:100vh;
+      background:#000; border-right:2px solid var(--blue); z-index:2000;
+      transition:left 0.3s ease; padding:20px 18px; overflow-y:auto;
+      box-shadow:0 0 25px rgba(41,121,255,0.5);
+    }
+    .side-menu.open{left:0;}
+    .side-menu-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1999; display:none;}
+    .side-menu-overlay.show{display:block;}
+    .side-menu-header{display:flex; align-items:center; gap:12px; margin-bottom:6px; margin-top:20px;}
+    .side-menu-header img{width:46px; height:46px; border-radius:50%; border:2px solid var(--red); object-fit:cover;}
+    .side-menu-header .name{font-weight:800; font-size:14px;}
+    .side-menu-header .ver{font-size:11px; color:var(--muted);}
+    .side-menu hr{border:none; border-top:2px solid var(--blue); margin:14px 0;}
+    .side-menu a{
+      display:block; padding:13px 14px; margin-bottom:10px; border-radius:10px;
+      border:1.5px solid var(--cyan); color:#fff; text-decoration:none; font-size:14px;
+    }
+    .close-menu{position:absolute; top:16px; right:16px; background:none; border:none; color:#fff; font-size:20px;}
+    .fab-support{
+      position:fixed; bottom:88px; right:16px; width:52px; height:52px;
+      border-radius:50%; background:#111; border:2px solid var(--red);
+      display:flex; align-items:center; justify-content:center; font-size:24px;
+      box-shadow:0 0 16px rgba(255,45,85,0.7); z-index:400; text-decoration:none;
+    }
+    .loading-wrap{display:flex; align-items:center; justify-content:center; min-height:50vh;}
+    .spinner{width:44px; height:44px; border:4px solid #222; border-top-color:var(--cyan); border-radius:50%; animation:spin 0.8s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .hidden{display:none !important;}
+
+
+    .op-name{text-align:center;font-size:20px;font-weight:700;text-decoration:underline;margin:14px 0 16px;}
+    .tab-row{display:flex; gap:12px; margin-bottom:18px;}
+    .tab-btn{
+      flex:1; padding:12px; border-radius:10px; text-align:center; font-weight:700;
+      border:1.5px solid var(--cyan); background:#050505; color:var(--cyan); cursor:pointer;
+    }
+    .tab-btn.active{background:#000030; border-color:var(--blue); color:#fff; box-shadow:0 0 12px rgba(41,121,255,0.6);}
+    .offer-card{
+      border:2px solid var(--blue); border-radius:14px; padding:16px; margin-bottom:16px;
+      position:relative; box-shadow:0 0 16px rgba(41,121,255,0.3); background:#060608;
+    }
+    .discount-badge{
+      position:absolute; top:-10px; right:14px; background:#001830; border:1px solid var(--cyan);
+      border-radius:14px; padding:3px 12px; font-size:11px; color:var(--cyan);
+    }
+    .offer-name{font-weight:700; font-size:15px; margin-bottom:8px;}
+    .offer-meta{font-size:13.5px; margin-bottom:4px;}
+    .offer-meta.validity{color:var(--green);}
+    .offer-meta.shop-price{color:var(--red); text-decoration:line-through;}
+    .offer-meta.our-price{color:#fff;}
+    .offer-cond{color:var(--yellow); font-size:12px; margin:8px 0; display:flex; gap:5px; align-items:flex-start;}
+    .buy-now-btn{
+      display:flex; align-items:center; justify-content:center; gap:6px;
+      margin-top:10px; padding:11px; border-radius:10px; border:1.5px solid var(--cyan);
+      background:#001820; color:#fff; font-weight:700; cursor:pointer; width:100%;
+    }
+    .empty-state{text-align:center; color:var(--muted); padding:60px 20px; font-size:14px;}
+
+    /* Buy Now মোডাল */
+    .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:3000; display:none; align-items:flex-end;}
+    .modal-overlay.show{display:flex;}
+    .modal-box{
+      width:100%; max-width:520px; margin:0 auto; background:#050505;
+      border:2px solid var(--cyan); border-top-left-radius:20px; border-top-right-radius:20px;
+      padding:20px 18px 26px; box-shadow:0 0 30px rgba(0,229,255,0.4);
+      animation:slideUp 0.3s ease;
+    }
+    @keyframes slideUp{from{transform:translateY(100%);} to{transform:translateY(0);}}
+    .modal-box h3{text-align:center; margin-bottom:14px;}
+    .modal-field-label{font-size:13px; color:var(--cyan); margin-bottom:6px; display:block;}
+    .modal-input{
+      width:100%; padding:12px; border-radius:10px; border:1.5px solid var(--blue);
+      background:#000; color:#fff; font-size:14px; margin-bottom:16px;
+    }
+    .modal-btn-row{display:flex; gap:12px;}
+    .modal-btn{flex:1; padding:13px; border-radius:10px; font-weight:700; border:none; cursor:pointer;}
+    .modal-btn.cancel{background:#3a0000; color:#ff8fa3; border:1.5px solid var(--red);}
+    .modal-btn.confirm{background:#001a33; color:#8fd6ff; border:1.5px solid var(--cyan);}
+
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <button class="icon-btn" onclick="openMenu()"><i class="fa-solid fa-bars"></i></button>
+    <div class="title">HM-NAYEM-TELECOM<br>BANGLADESH</div>
+    <button class="icon-btn" onclick="window.location.href='notifications.html'">
+      <i class="fa-solid fa-bell"></i><span class="bell-dot" id="bellDot"></span>
+    </button>
+  </div>
+<div id="loading" class="loading-wrap"><div class="spinner"></div></div>
+<div id="main-content" class="hidden">
+
+
+
+<div class="container">
+  <div class="op-name" id="opName">অপারেটর</div>
+  <div class="tab-row">
+    <div class="tab-btn active" id="tab7" onclick="switchTab(7)">৭ দিন</div>
+    <div class="tab-btn" id="tab30" onclick="switchTab(30)">৩০ দিন</div>
+  </div>
+  <div id="offerList"></div>
+</div>
+
+<!-- Buy Now মোডাল -->
+<div class="modal-overlay" id="buyModal">
+  <div class="modal-box">
+    <h3 id="modalOfferName">এডমিন থেকে দেওয়া অফার নাম</h3>
+    <p class="offer-meta validity" id="modalValidity">মেয়াদঃ- ৩০ দিন</p>
+    <p class="offer-meta shop-price" id="modalShopPrice">দোকানের মুল্যঃ ৳:-0.00</p>
+    <p class="offer-meta our-price" id="modalOurPrice">আমাদের মুল্যঃ ৳:-0.00</p>
+    <p class="offer-cond">⚠️ শর্ত:-এডমিন থেকে দেওয়া হবে</p>
+    <br>
+    <label class="modal-field-label">যে নাম্বারে অফার নিতে চান</label>
+    <input type="tel" class="modal-input" id="modalNumber" placeholder="নাম্বার দিন">
+    <div class="modal-btn-row">
+      <button class="modal-btn cancel" onclick="closeBuyModal()">বাতিল</button>
+      <button class="modal-btn confirm" onclick="confirmPurchase()">কিনুন</button>
+    </div>
+  </div>
+</div>
+
+</div>
+<a href="chat.html" class="fab-support"><i class="fa-solid fa-headset"></i></a>
+
+<div class="bottom-nav">
+  <a href="home.html" class="nav-item active"><span class="nav-icon"><i class="fa-solid fa-house"></i></span>হোম</a>
+  <a href="chat.html" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-comment-dots"></i></span>ইনবক্স</a>
+  <a href="profile.html" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-user"></i></span>প্রফাইল</a>
+</div>
+
+
+<div class="side-menu-overlay" id="menuOverlay" onclick="closeMenu()"></div>
+<div class="side-menu" id="sideMenu">
+  <button class="close-menu" onclick="closeMenu()"><i class="fa-solid fa-xmark"></i></button>
+  <div class="side-menu-header">
+    <img src="png/logo.png" alt="logo" onerror="this.src='https://placehold.co/46x46/000/0ff?text=HM'">
+    <div>
+      <div class="name">HM-NAYEM-TELECOM<br>BANGLADESH</div>
+      <div class="ver">Version: 0.9.205</div>
+    </div>
+  </div>
+  <hr>
+  <a href="privacy-policy.html">Privacy and Policy</a>
+  <a href="rules.html">Rules</a>
+  <a href="about.html">About</a>
+  <a href="developer-info.html">Developer Info</a>
+</div>
+
+<script src="firebase-config.js"></script>
+<script>
+
+  function openMenu(){
+    document.getElementById('sideMenu').classList.add('open');
+    document.getElementById('menuOverlay').classList.add('show');
+  }
+  function closeMenu(){
+    document.getElementById('sideMenu').classList.remove('open');
+    document.getElementById('menuOverlay').classList.remove('show');
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const operatorKey = params.get('operator') || 'grameenphone';
+  const category = params.get('category') || 'recharge';
+  const opNames = {
+    grameenphone:'Grameenphone', skitto:'Skitto', airtel:'Airtel', robi:'Robi',
+    banglalink:'Banglalink', teletalk:'Teletalk', brilliant:'Brilliant Research', alap:'Alap'
+  };
+  document.getElementById('opName').textContent = opNames[operatorKey] || operatorKey;
+
+  let currentValidity = 7;
+  let currentUser = null;
+  let selectedOffer = null;
+
+  // ৫ মিনিটের কুলডাউন সময় (মিলিসেকেন্ডে: ৩০০,০০০ মি.সে.)
+  const COOLDOWN_TIME = 5 * 60 * 1000; 
+
+  function switchTab(days){
+    currentValidity = days;
+    document.getElementById('tab7').classList.toggle('active', days===7);
+    document.getElementById('tab30').classList.toggle('active', days===30);
+    loadOffers();
+  }
+
+  function loadOffers(){
+    const listEl = document.getElementById('offerList');
+    listEl.innerHTML = '<div class="empty-state">লোড হচ্ছে...</div>';
+    db.ref('offers').orderByChild('operator').equalTo(operatorKey)
+      .once('value')
+      .then(snap => {
+        const matched = [];
+        snap.forEach(child => {
+          const o = child.val();
+          if(o.category === category && o.validityDays === currentValidity && o.active === true){
+            o.id = child.key;
+            matched.push(o);
+          }
+        });
+        if(matched.length === 0){
+          listEl.innerHTML = '<div class="empty-state">এই মুহূর্তে কোনো অফার নেই</div>';
+          return;
+        }
+        // অফারের নামে/শর্তে quote (' বা ") থাকলে inline onclick attribute ভেঙে যেতে পারে,
+        // তাই ডাটা একটা ম্যাপে রেখে শুধু id দিয়ে বাটন থেকে রেফার করা হচ্ছে
+        offersById = {};
+        listEl.innerHTML = '';
+        matched.forEach(o => {
+          offersById[o.id] = o;
+          const card = document.createElement('div');
+          card.className = 'offer-card';
+          card.innerHTML = `
+            <div class="discount-badge">Discount: ৳${o.discount||0}</div>
+            <div class="offer-name">${escapeHtml(o.name || 'এডমিন থেকে দেওয়া অফার নাম')}</div>
+            <div class="offer-meta validity">মেয়াদঃ- ${o.validityDays} দিন</div>
+            <div class="offer-meta shop-price">দোকানের মুল্যঃ ৳:-${(o.shopPrice||0).toFixed(2)}</div>
+            <div class="offer-meta our-price">আমাদের মুল্যঃ ৳:-${(o.price||0).toFixed(2)}</div>
+            <div class="offer-cond">⚠️ শর্ত:-${escapeHtml(o.condition || 'এডমিন থেকে দেওয়া হবে')}</div>
+            <button class="buy-now-btn" data-offer-id="${o.id}">🛒 Buy Now</button>
+          `;
+          card.querySelector('.buy-now-btn').addEventListener('click', () => openBuyModal(offersById[o.id]));
+          listEl.appendChild(card);
+        });
+      })
+      .catch(err => {
+        listEl.innerHTML = '<div class="empty-state">অফার লোড করা যায়নি</div>';
+      });
+  }
+  let offersById = {};
+
+  // XSS আটকাতে — অ্যাডমিনের দেওয়া টেক্সট হলেও নিরাপত্তার জন্য escape করা হচ্ছে
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  function openBuyModal(offer){
+    selectedOffer = offer;
+    document.getElementById('modalOfferName').textContent = offer.name || 'এডমিন থেকে দেওয়া অফার নাম';
+    document.getElementById('modalValidity').textContent = 'মেয়াদঃ- ' + offer.validityDays + ' দিন';
+    document.getElementById('modalShopPrice').textContent = 'দোকানের মুল্যঃ ৳:-' + (offer.shopPrice||0).toFixed(2);
+    document.getElementById('modalOurPrice').textContent = 'আমাদের মুল্যঃ ৳:-' + (offer.price||0).toFixed(2);
+    document.getElementById('modalNumber').value = '';
+    document.getElementById('buyModal').classList.add('show');
+  }
+
+  function closeBuyModal(){
+    document.getElementById('buyModal').classList.remove('show');
+  }
+
+  // সুরক্ষিত ও আপডেট করা অর্ডার প্রসেস ফাংশন
+  function confirmPurchase(){
+    const number = document.getElementById('modalNumber').value.trim();
+    
+    // ১. ১১ ডিজিটের সঠিক মোবাইল নম্বর যাচাই করা
+    if(!/^01[0-9]{9}$/.test(number)){
+      showToast('সঠিক ১১ ডিজিটের মোবাইল নাম্বার দিন', 'error');
+      return;
+    }
+    
+    if(!selectedOffer || !currentUser) return;
+
+    // ২. ৫ মিনিটের টাইমার (Cooldown) চেক করা
+    const lastOrderKey = 'lastOrderTime_' + currentUser.uid;
+    const lastOrderTime = localStorage.getItem(lastOrderKey);
+    const currentTime = Date.now();
+
+    if(lastOrderTime && (currentTime - Number(lastOrderTime)) < COOLDOWN_TIME){
+      const remainingSeconds = Math.ceil((COOLDOWN_TIME - (currentTime - Number(lastOrderTime))) / 1000);
+      const minutes = Math.floor(remainingSeconds / 60);
+      const seconds = remainingSeconds % 60;
+      showToast(`অপেক্ষা করুন! পরবর্তী অফার দিতে ${minutes} মি: ${seconds} সে: বাকি`, 'error');
+      return;
+    }
+
+    const confirmBtn = document.querySelector('.modal-btn.confirm');
+    if(confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'যাচাই হচ্ছে...';
+    }
+
+    const price = selectedOffer.price || 0;
+
+    // ৩. ব্যালেন্স রিড করে সাথে সাথে কেটে নেওয়া হচ্ছে (prepaid) —
+    // এখানে "যথেষ্ট আছে কিনা" আলাদা করে চেক করা হচ্ছে না, কারণ Firebase rules-এই
+    // walletBalance কে নেগেটিভ হতে দেয় না (নন-অ্যাডমিন শুধু কমাতে পারে, ০-এর নিচে না)।
+    // তাই ব্যালেন্স কম থাকলে এই .set() কলটাই rules দিয়ে রিজেক্ট হয়ে যাবে, আর সেটা .catch()-এ ধরা পড়বে।
+    const balRef = db.ref('users/' + currentUser.uid + '/walletBalance');
+    balRef.once('value').then((snap) => {
+      const balance = Number(snap.val()) || 0;
+      const balancePoisha = Math.round(balance * 100);
+      const pricePoisha = Math.round(price * 100);
+      const newBalance = (balancePoisha - pricePoisha) / 100;
+
+      if (confirmBtn) confirmBtn.textContent = 'প্রসেসিং...';
+
+      return balRef.set(newBalance).then(() => {
+        return db.ref('orders').push({
+          userId: currentUser.uid,
+          offerId: selectedOffer.id,
+          offerName: selectedOffer.name || '',
+          operator: operatorKey,
+          category: category,
+          number: number,
+          amount: price,
+          status: 'pending',
+          prepaid: true,
+          createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+      }).then(() => {
+        localStorage.setItem(lastOrderKey, currentTime.toString());
+
+        closeBuyModal();
+        showToast('অর্ডার সফলভাবে জমা হয়েছে! এডমিন পেন্ডিং চেক করবেন।', 'success');
+      });
+    }).catch((err) => {
+      if (err && err.code === 'PERMISSION_DENIED') {
+        showToast('পর্যাপ্ত ব্যালেন্স নেই', 'error');
+      } else {
+        showToast('কিছু একটা সমস্যা হয়েছে, আবার চেষ্টা করুন', 'error');
+      }
+    }).finally(() => {
+      if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'কিনুন';
+      }
+    });
+  }
+
+  requireAuth((user)=>{
+    currentUser = user;
+    checkBlockedStatus(user.uid);
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('main-content').classList.remove('hidden');
+    loadOffers();
+  });
+
+</script>
+</body>
+</html>

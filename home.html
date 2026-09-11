@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HM-NAYEM-TELECOM BANGLADESH</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+    :root{
+      --bg:#050505; --panel:#0a0a0a; --cyan:#00e5ff; --red:#ff2d55;
+      --green:#00e676; --yellow:#ffd60a; --blue:#2979ff; --magenta:#ff2dd4;
+      --text:#f2f2f2; --muted:#9aa0a6;
+    }
+    *{box-sizing:border-box; margin:0; padding:0;}
+    body{
+      background:radial-gradient(circle at top, #101010 0%, #000 70%);
+      color:var(--text); font-family:'Segoe UI', Tahoma, sans-serif;
+      max-width:520px; margin:0 auto; min-height:100vh;
+      padding-bottom:78px; position:relative;
+    }
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 14px; border-bottom:2px solid var(--red);
+      box-shadow:0 0 18px rgba(255,45,85,0.45);
+      background:#000; position:sticky; top:0; z-index:500;
+    }
+    .topbar .title{
+      font-weight:800; font-size:15px; text-align:center; flex:1;
+      letter-spacing:0.5px; text-shadow:0 0 8px var(--cyan);
+    }
+    .icon-btn{
+      background:none; border:none; color:var(--cyan); font-size:22px;
+      cursor:pointer; text-shadow:0 0 8px var(--cyan); position:relative;
+    }
+    .bell-dot{
+      position:absolute; top:-2px; right:-2px; width:9px; height:9px;
+      background:var(--red); border-radius:50%; box-shadow:0 0 6px var(--red);
+      display:none;
+    }
+    .container{padding:16px 14px;}
+
+    /* নোটিস বার */
+    .notice-bar{
+      background:#1a1a00; border:1.5px solid var(--yellow); border-radius:8px;
+      padding:9px 12px; margin-bottom:16px; overflow:hidden; white-space:nowrap;
+      box-shadow:0 0 10px rgba(255,214,10,0.3);
+    }
+    .notice-bar span{
+      display:inline-block; color:var(--yellow); font-size:12.5px;
+      animation:marquee 14s linear infinite; padding-left:100%;
+    }
+    @keyframes marquee{0%{transform:translateX(0);} 100%{transform:translateX(-100%);}}
+
+    /* ব্যালেন্স ও রিচার্জ প্যানেল */
+    .balance-panel{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      border:2px solid var(--cyan); border-radius:16px; padding:18px 14px;
+      margin-bottom:16px; box-shadow:0 0 18px rgba(0,229,255,0.35);
+    }
+    .balance-circle{
+      width:110px; height:110px; border-radius:50%; border:3px solid var(--blue);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      background:radial-gradient(circle, #0d1a33 0%, #000 100%);
+      box-shadow:0 0 20px rgba(41,121,255,0.6); flex-shrink:0;
+    }
+    .balance-circle .lbl{font-size:12px; color:var(--muted);}
+    .balance-circle .amt{font-size:16px; font-weight:800; color:#fff; margin-top:2px;}
+    .balance-btns{display:flex; flex-direction:column; gap:10px; flex:1;}
+    .btn-neon{
+      padding:12px 8px; border-radius:10px; text-align:center; font-weight:700;
+      font-size:13.5px; text-decoration:none; cursor:pointer; border:1.5px solid;
+    }
+    .btn-recharge{background:#1a0000; border-color:var(--red); color:#ff8fa3; box-shadow:0 0 12px rgba(255,45,85,0.4);}
+    .btn-history{background:#00061a; border-color:var(--blue); color:#8fb3ff; box-shadow:0 0 12px rgba(41,121,255,0.4);}
+
+    /* ব্যানার স্লাইডার */
+    .banner-wrap{
+      position:relative; border:2px solid var(--magenta); border-radius:14px;
+      overflow:hidden; margin-bottom:8px; box-shadow:0 0 18px rgba(255,45,212,0.35);
+      background:#111; min-height:120px;
+      transition:height 0.35s ease; /* সাইজ বদলানোর সময় হুট করে না লাফিয়ে মসৃণভাবে বদলাবে */
+    }
+    .banner-slide{
+      position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+      opacity:0; transition:opacity 0.6s ease; text-decoration:none;
+      pointer-events:none; /* অদৃশ্য ব্যানার যেন ক্লিকযোগ্য না থাকে */
+    }
+    .banner-slide.active{opacity:1; pointer-events:auto;}
+    .banner-slide img{width:100%; height:100%; object-fit:contain;}
+    .banner-dots{display:flex; justify-content:center; gap:6px; margin:8px 0 16px;}
+    .banner-dots span{width:7px; height:7px; border-radius:50%; background:#333;}
+    .banner-dots span.active{background:var(--cyan); box-shadow:0 0 6px var(--cyan);}
+
+    .offer-grid-title{color:#fff; font-weight:700; margin-bottom:10px; font-size:15px;}
+    .offer-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;}
+    .offer-card{
+      border:1.5px solid var(--cyan); border-radius:12px; padding:16px 8px;
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+      text-decoration:none; color:#fff; background:#070707;
+      box-shadow:0 0 10px rgba(0,229,255,0.2);
+    }
+    .offer-card .ic{font-size:26px;}
+    .offer-card span{font-size:13px; font-weight:600; text-align:center;}
+
+    .bottom-nav{
+      position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+      width:100%; max-width:520px; display:flex; justify-content:space-around;
+      background:#000; border-top:2px solid var(--red); padding:10px 0 14px;
+      box-shadow:0 0 18px rgba(255,45,85,0.45); z-index:500;
+    }
+    .nav-item{
+      display:flex; flex-direction:column; align-items:center; gap:3px;
+      color:var(--muted); text-decoration:none; font-size:11px;
+    }
+    .nav-item.active{color:var(--cyan); text-shadow:0 0 8px var(--cyan);}
+    .nav-item .nav-icon{font-size:20px;}
+
+    .side-menu{
+      position:fixed; top:0; left:-320px; width:280px; height:100vh;
+      background:#000; border-right:2px solid var(--blue); z-index:2000;
+      transition:left 0.3s ease; padding:20px 18px; overflow-y:auto;
+      box-shadow:0 0 25px rgba(41,121,255,0.5);
+    }
+    .side-menu.open{left:0;}
+    .side-menu-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1999; display:none;}
+    .side-menu-overlay.show{display:block;}
+    .side-menu-header{display:flex; align-items:center; gap:12px; margin-bottom:6px; margin-top:20px;}
+    .side-menu-header img{width:46px; height:46px; border-radius:50%; border:2px solid var(--red); object-fit:cover;}
+    .side-menu-header .name{font-weight:800; font-size:14px;}
+    .side-menu-header .ver{font-size:11px; color:var(--muted);}
+    .side-menu hr{border:none; border-top:2px solid var(--blue); margin:14px 0;}
+    .side-menu a{
+      display:block; padding:13px 14px; margin-bottom:10px; border-radius:10px;
+      border:1.5px solid var(--cyan); color:#fff; text-decoration:none; font-size:14px;
+    }
+    .close-menu{position:absolute; top:16px; right:16px; background:none; border:none; color:#fff; font-size:20px;}
+
+    .fab-support{
+      position:fixed; bottom:88px; right:16px; width:52px; height:52px;
+      border-radius:50%; background:#111; border:2px solid var(--red);
+      display:flex; align-items:center; justify-content:center; font-size:22px;
+      box-shadow:0 0 16px rgba(255,45,85,0.7); z-index:400; cursor:pointer; color:var(--red);
+      transition:transform 0.3s ease;
+    }
+    .fab-support.open{ transform:rotate(45deg); }
+    .fab-support i{ text-shadow:0 0 8px rgba(255,45,85,0.8); }
+
+    .support-menu{
+      position:fixed; bottom:148px; right:16px; z-index:399;
+      display:flex; flex-direction:column; align-items:flex-end; gap:12px;
+      opacity:0; pointer-events:none; transform:translateY(12px);
+      transition:opacity 0.25s ease, transform 0.25s ease;
+    }
+    .support-menu.open{ opacity:1; pointer-events:auto; transform:translateY(0); }
+    .support-item{
+      display:flex; align-items:center; gap:10px; text-decoration:none;
+    }
+    .support-item .label{
+      background:#0a0a0a; border:1px solid rgba(255,255,255,0.15); color:#fff;
+      font-size:12px; padding:5px 10px; border-radius:8px; white-space:nowrap;
+      opacity:0; transform:translateX(6px); transition:opacity 0.2s ease, transform 0.2s ease;
+    }
+    .support-menu.open .support-item .label{ opacity:1; transform:translateX(0); }
+    .support-item .circle{
+      width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+      font-size:20px; flex-shrink:0; box-shadow:0 0 14px currentColor;
+    }
+    .support-item.fb .circle{ background:#0a1622; color:#1877f2; border:1.5px solid #1877f2; }
+    .support-item.wa .circle{ background:#08160f; color:#25D366; border:1.5px solid #25D366; }
+    .support-item.tg .circle{ background:#081824; color:#29a9eb; border:1.5px solid #29a9eb; }
+    .support-item.call .circle{ background:#1a0f05; color:#ffa733; border:1.5px solid #ffa733; }
+
+    .loading-wrap{display:flex; align-items:center; justify-content:center; min-height:50vh;}
+    .spinner{width:44px; height:44px; border:4px solid #222; border-top-color:var(--cyan); border-radius:50%; animation:spin 0.8s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .hidden{display:none !important;}
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <button class="icon-btn" onclick="openMenu()"><i class="fa-solid fa-bars"></i></button>
+    <div class="title">HM-NAYEM-TELECOM<br>BANGLADESH</div>
+    <button class="icon-btn" onclick="window.location.href='notifications.html'">
+      <i class="fa-solid fa-bell"></i><span class="bell-dot" id="bellDot"></span>
+    </button>
+  </div>
+
+<!-- লোডিং স্টেট -->
+<div id="loading" class="loading-wrap"><div class="spinner"></div></div>
+
+<!-- মূল কনটেন্ট (লোড হওয়ার পর দেখানো হবে) -->
+<div id="main-content" class="hidden">
+
+
+  <div class="container">
+
+    <!-- নোটিস বার (এডমিন থেকে টেক্সট আসবে) -->
+    <div class="notice-bar"><span id="noticeText">এডমিন এপ থেকে দেওয়া ম্যাসেজ টি ডানে থেকে বামে স্ক্রল হবে</span></div>
+
+    <!-- ব্যালেন্স ও রিচার্জ -->
+    <div class="balance-panel">
+      <div class="balance-circle" onclick="window.location.href='deposit.html'" style="cursor:pointer;">
+        <div class="lbl">ব্যালেন্স</div>
+        <div class="amt">৳:-<span id="balanceAmt">00.00</span></div>
+      </div>
+      <div class="balance-btns">
+        <a href="deposit.html" class="btn-neon btn-recharge">ডিপোজিট করুন</a>
+        <a href="history.html" class="btn-neon btn-history">রিচার্জ হিস্টোরি</a>
+      </div>
+    </div>
+
+    <!-- ব্যানার স্লাইডার (এডমিন কন্ট্রোলড, সোশ্যাল লিংক সহ) -->
+    <div class="banner-wrap" id="bannerWrap">
+      <!-- জেএস দিয়ে dynamically ব্যানার স্লাইড বসবে -->
+    </div>
+    <div class="banner-dots" id="bannerDots"></div>
+
+    <!-- অফার লিস্ট গ্রিড -->
+    <div class="offer-grid-title">★ অফার লিস্ট</div>
+    <div class="offer-grid">
+      <a href="internet-operators.html" class="offer-card"><div class="ic"><i class="fa-solid fa-wifi"></i></div><span>ইন্টারনেট</span></a>
+      <a href="bundle.html" class="offer-card"><div class="ic"><i class="fa-solid fa-box-open"></i></div><span>বান্ডিল</span></a>
+      <a href="minute.html" class="offer-card"><div class="ic"><i class="fa-solid fa-phone-volume"></i></div><span>মিনিট</span></a>
+      <a href="recharge-operators.html" class="offer-card"><div class="ic"><i class="fa-solid fa-mobile-screen-button"></i></div><span>সকল সিমে রিচার্জ করুন</span></a>
+    </div>
+
+  </div>
+</div>
+
+<!-- সাপোর্ট স্পিড-ডায়াল মেনু -->
+<div class="support-menu" id="supportMenu">
+  <a href="#" id="supportFb" target="_blank" class="support-item fb">
+    <span class="label">Facebook</span>
+    <span class="circle"><i class="fa-brands fa-facebook-f"></i></span>
+  </a>
+  <a href="#" id="supportWa" target="_blank" class="support-item wa">
+    <span class="label">WhatsApp</span>
+    <span class="circle"><i class="fa-brands fa-whatsapp"></i></span>
+  </a>
+  <a href="#" id="supportTg" target="_blank" class="support-item tg">
+    <span class="label">Telegram</span>
+    <span class="circle"><i class="fa-brands fa-telegram"></i></span>
+  </a>
+  <a href="#" id="supportCall" class="support-item call">
+    <span class="label">সরাসরি কল</span>
+    <span class="circle"><i class="fa-solid fa-phone"></i></span>
+  </a>
+</div>
+<button class="fab-support" id="fabSupport" onclick="toggleSupportMenu()"><i class="fa-solid fa-headset"></i></button>
+
+<!-- বটম নেভিগেশন -->
+<div class="bottom-nav">
+  <a href="home.html" class="nav-item active"><span class="nav-icon"><i class="fa-solid fa-house"></i></span>হোম</a>
+  <a href="chat.html" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-comment-dots"></i></span>ইনবক্স</a>
+  <a href="profile.html" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-user"></i></span>প্রফাইল</a>
+</div>
+
+<!-- সাইড মেনু -->
+<div class="side-menu-overlay" id="menuOverlay" onclick="closeMenu()"></div>
+<div class="side-menu" id="sideMenu">
+  <button class="close-menu" onclick="closeMenu()"><i class="fa-solid fa-xmark"></i></button>
+  <div class="side-menu-header">
+    <img src="png/logo.png" alt="logo" onerror="this.src='https://placehold.co/46x46/000/0ff?text=HM'">
+    <div>
+      <div class="name">HM-NAYEM-TELECOM<br>BANGLADESH</div>
+      <div class="ver">Version: 0.9.205</div>
+    </div>
+  </div>
+  <hr>
+  <a href="privacy-policy.html">Privacy and Policy</a>
+  <a href="rules.html">Rules</a>
+  <a href="about.html">About</a>
+  <a href="developer-info.html">Developer Info</a>
+</div>
+
+<script src="firebase-config.js"></script>
+<script>
+  function toggleSupportMenu(){
+    document.getElementById('supportMenu').classList.toggle('open');
+    document.getElementById('fabSupport').classList.toggle('open');
+  }
+  document.addEventListener('click', (e) => {
+    const menu = document.getElementById('supportMenu');
+    const fab = document.getElementById('fabSupport');
+    if(menu.classList.contains('open') && !menu.contains(e.target) && !fab.contains(e.target)){
+      menu.classList.remove('open');
+      fab.classList.remove('open');
+    }
+  });
+
+  // এডমিন থেকে দেওয়া সাপোর্ট লিংক/নাম্বার লোড হবে (settings/contact ডকুমেন্ট থেকে)
+  function loadSupportLinks(){
+    db.ref('settings/contact').once('value').then(snap => {
+      const d = snap.val() || {};
+      document.getElementById('supportFb').href = d.facebook || 'https://facebook.com';
+      document.getElementById('supportWa').href = d.whatsapp ? ('https://wa.me/' + d.whatsapp.replace(/[^0-9]/g,'')) : 'https://wa.me/8801XXXXXXXXX';
+      document.getElementById('supportTg').href = d.telegram || 'https://t.me/';
+      document.getElementById('supportCall').href = d.phone ? ('tel:' + d.phone) : 'tel:+8801XXXXXXXXX';
+    }).catch(() => {});
+  }
+  loadSupportLinks();
+
+  function openMenu(){
+    document.getElementById('sideMenu').classList.add('open');
+    document.getElementById('menuOverlay').classList.add('show');
+  }
+  function closeMenu(){
+    document.getElementById('sideMenu').classList.remove('open');
+    document.getElementById('menuOverlay').classList.remove('show');
+  }
+
+  // ---- ব্যানার স্লাইডার (Firestore এর banners কালেকশন থেকে লোড হবে) ----
+  let banners = [];
+  let bannerIndex = 0;
+  let bannerTimer = null;
+  let bannerRatios = []; // প্রতিটা ব্যানারের height/width অনুপাত, ছবি লোড হওয়ার পর জানা যায়
+
+  function applyBannerHeight(index){
+    const wrap = document.getElementById('bannerWrap');
+    const ratio = bannerRatios[index];
+    if(ratio && wrap.offsetWidth > 0){
+      wrap.style.height = Math.round(wrap.offsetWidth * ratio) + 'px';
+    }
+  }
+
+  function renderBanners(){
+    const wrap = document.getElementById('bannerWrap');
+    const dots = document.getElementById('bannerDots');
+    wrap.innerHTML = '';
+    dots.innerHTML = '';
+    bannerRatios = new Array(banners.length);
+
+    if(banners.length === 0){
+      wrap.style.height = '120px';
+      wrap.innerHTML = `<div class="banner-slide active" style="color:#555;font-size:13px;">কোনো ব্যানার নেই</div>`;
+      return;
+    }
+    banners.forEach((b, i) => {
+      const a = document.createElement('a');
+      a.className = 'banner-slide' + (i === 0 ? ' active' : '');
+      a.href = (b.socialLink && /^https?:\/\//i.test(b.socialLink)) ? b.socialLink : '#';
+      a.target = '_blank';
+      const img = document.createElement('img');
+      img.src = b.imageUrl || '';
+      img.alt = 'banner';
+      // ছবিটা আসলে কতটা লম্বা/চওড়া সেটা লোড হওয়ার পর জেনে অনুপাত হিসেব করা হচ্ছে,
+      // যাতে বক্সের উচ্চতা ঠিক ওই ব্যানারের নিজের সাইজ অনুযায়ী বসে
+      img.onload = function(){
+        bannerRatios[i] = img.naturalHeight / img.naturalWidth;
+        if(i === bannerIndex) applyBannerHeight(i);
+      };
+      a.appendChild(img);
+      wrap.appendChild(a);
+
+      const dot = document.createElement('span');
+      if(i === 0) dot.className = 'active';
+      dots.appendChild(dot);
+    });
+    startBannerAutoSlide();
+  }
+
+  function goToBanner(index){
+    if(banners.length === 0) return;
+    bannerIndex = ((index % banners.length) + banners.length) % banners.length;
+    document.querySelectorAll('.banner-slide').forEach((el, i) => el.classList.toggle('active', i === bannerIndex));
+    document.querySelectorAll('.banner-dots span').forEach((el, i) => el.classList.toggle('active', i === bannerIndex));
+    applyBannerHeight(bannerIndex);
+    startBannerAutoSlide(); // ম্যানুয়ালি সোয়াইপ করলে অটো-স্লাইডের টাইমার আবার শুরু থেকে গোনা হয়
+  }
+
+  function startBannerAutoSlide(){
+    clearInterval(bannerTimer);
+    if(banners.length < 2) return;
+    bannerTimer = setInterval(() => {
+      bannerIndex = (bannerIndex + 1) % banners.length;
+      document.querySelectorAll('.banner-slide').forEach((el, i) => el.classList.toggle('active', i === bannerIndex));
+      document.querySelectorAll('.banner-dots span').forEach((el, i) => el.classList.toggle('active', i === bannerIndex));
+      applyBannerHeight(bannerIndex);
+    }, 2500);
+  }
+
+  // স্ক্রিন ঘোরালে/সাইজ বদলালে সক্রিয় ব্যানারের উচ্চতাও নতুন প্রস্থ অনুযায়ী রিক্যালকুলেট হবে
+  window.addEventListener('resize', () => applyBannerHeight(bannerIndex));
+
+  // ---- হাত দিয়ে ডানে/বামে সোয়াইপ করে ব্যানার পাল্টানো ----
+  (function setupBannerSwipe(){
+    const wrap = document.getElementById('bannerWrap');
+    let touchStartX = 0, touchStartY = 0, touchEndX = 0, touchEndY = 0;
+
+    wrap.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].clientX;
+      touchStartY = e.changedTouches[0].clientY;
+    }, { passive: true });
+
+    wrap.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].clientX;
+      touchEndY = e.changedTouches[0].clientY;
+
+      const diffX = touchEndX - touchStartX;
+      const diffY = touchEndY - touchStartY;
+
+      // শুধু আনুভূমিক (ডানে/বামে) সোয়াইপ ধরা হচ্ছে, উপরে/নিচে স্ক্রল করলে এটা কাজ করবে না
+      if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY)) {
+        if (diffX < 0) {
+          goToBanner(bannerIndex + 1); // বামে সোয়াইপ -> পরের ব্যানার
+        } else {
+          goToBanner(bannerIndex - 1); // ডানে সোয়াইপ -> আগের ব্যানার
+        }
+      }
+    }, { passive: true });
+  })();
+
+  function loadBanners(){
+    db.ref('banners').orderByChild('order').once('value')
+      .then(snap => {
+        const arr = [];
+        snap.forEach(child => { const v = child.val(); if(v && v.active) arr.push(v); });
+        banners = arr;
+        renderBanners();
+      })
+      .catch(() => renderBanners());
+  }
+
+  function loadNotice(){
+    db.ref('settings/notice').once('value').then(snap => {
+      const d = snap.val();
+      if(d && d.text){
+        document.getElementById('noticeText').textContent = d.text;
+      }
+    }).catch(() => {});
+  }
+
+  // 'all' (ব্রডকাস্ট) নোটিফিকেশনের read-status DB-তে শেয়ার্ড, তাই প্রতিটা ইউজারের
+  // নিজস্ব read-status localStorage থেকে চেক করা হয় (notifications.html-এর সাথে মিলিয়ে)।
+  function getReadBroadcastSet(uid){
+    try{
+      const raw = localStorage.getItem('readBroadcasts_' + uid);
+      return new Set(raw ? JSON.parse(raw) : []);
+    }catch(e){ return new Set(); }
+  }
+
+  function listenUnreadNotifications(uid){
+    db.ref('notifications').orderByChild('userId').equalTo(uid).on('value', snap => {
+      let count = 0;
+      snap.forEach(child => { if(child.val().read === false) count++; });
+      checkAllNotif(uid, count);
+    }, () => {});
+    db.ref('notifications').orderByChild('userId').equalTo('all').on('value', snap => {
+      const readBroadcasts = getReadBroadcastSet(uid);
+      let count = 0;
+      snap.forEach(child => { if(!readBroadcasts.has(child.key)) count++; });
+      checkAllNotif('all-marker', count, true);
+    }, () => {});
+  }
+  const unreadCounts = { uid: 0, all: 0 };
+  function checkAllNotif(key, count, isAll){
+    if(isAll) unreadCounts.all = count; else unreadCounts.uid = count;
+    document.getElementById('bellDot').style.display = (unreadCounts.uid + unreadCounts.all) > 0 ? 'block' : 'none';
+  }
+
+  // ---- অথ + ব্লক চেক + ব্যালেন্স লোড ----
+  requireAuth((user) => {
+    db.ref('users/' + user.uid).on('value', (snap) => {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('main-content').classList.remove('hidden');
+
+      const data = snap.val();
+      if(data){
+        if(data.blocked === true){
+          showBlockedOverlay(data.supportWhatsApp || '8801XXXXXXXXX');
+          return;
+        }
+        document.getElementById('balanceAmt').textContent = (data.walletBalance || 0).toFixed(2);
+      }
+    });
+    listenUnreadNotifications(user.uid);
+  });
+
+  loadBanners();
+  loadNotice();
+</script>
+</body>
+</html>

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ডিপোজিট - HM-NAYEM-TELECOM</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+
+    :root{
+      --bg:#050505; --panel:#0a0a0a; --cyan:#00e5ff; --red:#ff2d55;
+      --green:#00e676; --yellow:#ffd60a; --blue:#2979ff; --magenta:#ff2dd4;
+      --text:#f2f2f2; --muted:#9aa0a6;
+    }
+    *{box-sizing:border-box; margin:0; padding:0;}
+    body{
+      background:radial-gradient(circle at top, #101010 0%, #000 70%);
+      color:var(--text); font-family:'Segoe UI', Tahoma, sans-serif;
+      max-width:520px; margin:0 auto; min-height:100vh;
+      padding-bottom:78px; position:relative;
+      /* লং-প্রেসে টেক্সট সিলেক্ট/কপি ও কনটেক্সট মেনু বন্ধ (নাম্বার/ট্রানজেকশন আইডি ইনপুট ছাড়া) */
+      -webkit-user-select:none; -moz-user-select:none; user-select:none;
+      -webkit-touch-callout:none;
+    }
+    input, textarea{
+      -webkit-user-select:text; -moz-user-select:text; user-select:text;
+      -webkit-touch-callout:default;
+    }
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 14px; border-bottom:2px solid var(--red);
+      box-shadow:0 0 18px rgba(255,45,85,0.45);
+      background:#000; position:sticky; top:0; z-index:500;
+    }
+    .topbar .title{
+      font-weight:800; font-size:15px; text-align:center; flex:1;
+      letter-spacing:0.5px; text-shadow:0 0 8px var(--cyan);
+    }
+    .icon-btn{
+      background:none; border:none; color:var(--cyan); font-size:22px;
+      cursor:pointer; text-shadow:0 0 8px var(--cyan); position:relative;
+    }
+    .back-btn{background:none;border:none;color:var(--cyan);font-size:20px;cursor:pointer;text-shadow:0 0 8px var(--cyan);}
+    .container{padding:16px 14px;}
+    .section-title{
+      text-align:center; color:var(--green); font-size:18px; font-weight:700;
+      border-bottom:2px solid var(--cyan); padding-bottom:10px; margin-bottom:16px;
+      text-shadow:0 0 8px var(--green);
+    }
+    .bottom-nav{
+      position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+      width:100%; max-width:520px; display:flex; justify-content:space-around;
+      background:#000; border-top:2px solid var(--red); padding:10px 0 14px;
+      box-shadow:0 0 18px rgba(255,45,85,0.45); z-index:500;
+    }
+    .nav-item{
+      display:flex; flex-direction:column; align-items:center; gap:3px;
+      color:var(--muted); text-decoration:none; font-size:11px;
+    }
+    .nav-item.active{color:var(--cyan); text-shadow:0 0 8px var(--cyan);}
+    .nav-item .nav-icon{font-size:20px;}
+    .side-menu{
+      position:fixed; top:0; left:-320px; width:280px; height:100vh;
+      background:#000; border-right:2px solid var(--blue); z-index:2000;
+      transition:left 0.3s ease; padding:20px 18px; overflow-y:auto;
+      box-shadow:0 0 25px rgba(41,121,255,0.5);
+    }
+    .side-menu.open{left:0;}
+    .side-menu-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1999; display:none;}
+    .side-menu-overlay.show{display:block;}
+    .side-menu-header{display:flex; align-items:center; gap:12px; margin-bottom:6px; margin-top:20px;}
+    .side-menu-header img{width:46px; height:46px; border-radius:50%; border:2px solid var(--red); object-fit:cover;}
+    .side-menu-header .name{font-weight:800; font-size:14px;}
+    .side-menu-header .ver{font-size:11px; color:var(--muted);}
+    .side-menu hr{border:none; border-top:2px solid var(--blue); margin:14px 0;}
+    .side-menu a{
+      display:block; padding:13px 14px; margin-bottom:10px; border-radius:10px;
+      border:1.5px solid var(--cyan); color:#fff; text-decoration:none; font-size:14px;
+    }
+    .close-menu{position:absolute; top:16px; right:16px; background:none; border:none; color:#fff; font-size:20px;}
+    .fab-support{
+      position:fixed; bottom:88px; right:16px; width:52px; height:52px;
+      border-radius:50%; background:#111; border:2px solid var(--red);
+      display:flex; align-items:center; justify-content:center; font-size:24px;
+      box-shadow:0 0 16px rgba(255,45,85,0.7); z-index:400; text-decoration:none;
+    }
+    .loading-wrap{display:flex; align-items:center; justify-content:center; min-height:50vh;}
+    .spinner{width:44px; height:44px; border:4px solid #222; border-top-color:var(--cyan); border-radius:50%; animation:spin 0.8s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .hidden{display:none !important;}
+
+
+    .gateway-tabs{display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;}
+    .gw-tab{
+      flex:1; min-width:calc(50% - 4px); padding:12px 6px; text-align:center; border-radius:10px;
+      border:1.5px solid var(--red); background:#050505; color:#ff8fa3; font-weight:700; cursor:pointer;
+    }
+    .gw-tab.active{background:#3a0000; color:#fff; box-shadow:0 0 12px rgba(255,45,85,0.6);}
+    .deposit-box{border:2px solid var(--blue); border-radius:16px; padding:18px; box-shadow:0 0 18px rgba(41,121,255,0.35);}
+    .deposit-title{text-align:center; color:var(--cyan); font-size:17px; font-weight:700; text-decoration:underline; margin-bottom:16px;}
+    .send-money-line{text-align:center; font-size:13.5px; margin-bottom:10px; color:#ddd;}
+    .number-row{
+      display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:16px;
+      font-weight:800; font-size:16px; color:var(--red);
+    }
+    .copy-mini{
+      padding:5px 12px; border-radius:20px; border:1px solid var(--cyan); background:#001820;
+      color:var(--cyan); font-size:11px; cursor:pointer;
+    }
+    .instruction-box{border:1.5px solid var(--cyan); border-radius:10px; padding:14px; margin-bottom:16px;}
+    .instruction-box .lbl{color:var(--red); font-weight:700; margin-bottom:8px; text-decoration:underline;}
+    .instruction-box p{color:var(--yellow); font-size:13.5px; line-height:1.6;}
+    .field-label{font-size:13px; color:var(--green); margin-bottom:6px; display:block;}
+    .field-input{
+      width:100%; padding:12px; border-radius:10px; border:1.5px solid var(--yellow);
+      background:#000; color:#fff; font-size:14px; margin-bottom:16px;
+    }
+    .btn-row{display:flex; gap:12px;}
+    .btn-row button{flex:1; padding:13px; border-radius:10px; font-weight:700; border:none; cursor:pointer;}
+    .btn-row .cancel{background:#3a0000; color:#ff8fa3; border:1.5px solid var(--red);}
+    .btn-row .confirm{background:#001a33; color:#8fd6ff; border:1.5px solid var(--cyan);}
+
+</style>
+</head>
+<body>
+
+   <div class="topbar">
+    <button class="icon-btn" onclick="openMenu()"><i class="fa-solid fa-bars"></i></button>
+    <div class="title">HM-NAYEM-TELECOM<br>BANGLADESH</div>
+    <button class="icon-btn" onclick="window.location.href='notifications.html'">
+      <i class="fa-solid fa-bell"></i><span class="bell-dot" id="bellDot"></span>
+    </button>
+  </div>
+<div id="loading" class="loading-wrap"><div class="spinner"></div></div>
+<div id="main-content" class="hidden">
+
+
+
+<div class="container">
+  <div class="gateway-tabs" id="gatewayTabs"></div>
+  <div class="deposit-box">
+    <div class="deposit-title">ডিপোজিট রিকোয়েস্ট ফর্ম</div>
+    <div class="send-money-line">আমাদের পার্সোনাল <span id="gwNameLbl">বিকাশ</span> নাম্বারে সেন্ড মানি করুন</div>
+    <div class="number-row">
+      <span id="gwNumber">017********</span>
+      <button class="copy-mini" onclick="copyGwNumber()">কপি বাটন</button>
+    </div>
+    <div class="instruction-box">
+      <div class="lbl">নির্দেশনা</div>
+      <p id="gwInstruction">সঠিক ট্রানজেকশন আইডি ও পরিমাণ দিন, ভুল তথ্য দিলে রিকোয়েস্ট বাতিল হতে পারে।</p>
+    </div>
+    <label class="field-label">কত টাকা রিচার্জ করেছেন</label>
+    <input type="number" class="field-input" id="depAmount" placeholder="টাকার পরিমাণ দিন">
+    <label class="field-label">ট্রানজেকশন আইডি দিন (Trx ID)</label>
+    <input type="text" class="field-input" id="depTrxId" placeholder="ট্রানজেকশন আইডি দিন">
+    <label class="field-label">মোবাইল নাম্বার দিন (যে নাম্বার থেকে সেন্ড মানি করেছেন)</label>
+    <input type="tel" class="field-input" id="depSenderNumber" placeholder="মোবাইল নাম্বার দিন">
+    <div class="btn-row">
+      <button class="cancel" onclick="window.location.href='home.html'">বাতিল</button>
+      <button class="confirm" onclick="submitDeposit()">ওকে</button>
+    </div>
+  </div>
+</div>
+
+</div>
+<a href="chat.html" class="fab-support"><i class="fa-solid fa-headset"></i></a>
+
+<div class="bottom-nav">
+  <a href="home.html" class="nav-item active"><span class="nav-icon"><i class="fa-solid fa-house"></i></span>হোম</a>
+  <a href="chat.html" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-comment-dots"></i></span>ইনবক্স</a>
+  <a href="profile.html" class="nav-item"><span class="nav-icon"><i class="fa-solid fa-user"></i></span>প্রফাইল</a>
+</div>
+
+
+<div class="side-menu-overlay" id="menuOverlay" onclick="closeMenu()"></div>
+<div class="side-menu" id="sideMenu">
+  <button class="close-menu" onclick="closeMenu()"><i class="fa-solid fa-xmark"></i></button>
+  <div class="side-menu-header">
+    <img src="png/logo.png" alt="logo" onerror="this.src='https://placehold.co/46x46/000/0ff?text=HM'">
+    <div>
+      <div class="name">HM-NAYEM-TELECOM<br>BANGLADESH</div>
+      <div class="ver">Version: 0.9.205</div>
+    </div>
+  </div>
+  <hr>
+  <a href="privacy-policy.html">Privacy and Policy</a>
+  <a href="rules.html">Rules</a>
+  <a href="about.html">About</a>
+  <a href="developer-info.html">Developer Info</a>
+</div>
+
+<script src="firebase-config.js"></script>
+<script>
+
+  function openMenu(){
+    document.getElementById('sideMenu').classList.add('open');
+    document.getElementById('menuOverlay').classList.add('show');
+  }
+  function closeMenu(){
+    document.getElementById('sideMenu').classList.remove('open');
+    document.getElementById('menuOverlay').classList.remove('show');
+  }
+
+  // ইনপুট ফিল্ড ছাড়া বাকি সব জায়গায় লং-প্রেস/রাইট-ক্লিক কনটেক্সট মেনু (কপি/সিলেক্ট) বন্ধ
+  document.addEventListener('contextmenu', function(e){
+    const tag = e.target.tagName;
+    if(tag !== 'INPUT' && tag !== 'TEXTAREA'){
+      e.preventDefault();
+    }
+  });
+
+
+  const gateways = [
+    {id:'bkash', name:'বিকাশ'}, {id:'nagad', name:'নগদ'},
+    {id:'rocket', name:'রকেট'}, {id:'upay', name:'উপায়'}
+  ];
+  let activeGateway = 'bkash';
+  let gwNumbers = {};
+  let depUser = null;
+
+  function renderTabs(){
+    const wrap = document.getElementById('gatewayTabs');
+    wrap.innerHTML = '';
+    gateways.forEach(gw => {
+      const btn = document.createElement('div');
+      btn.className = 'gw-tab' + (gw.id === activeGateway ? ' active' : '');
+      btn.textContent = gw.name;
+      btn.onclick = () => { activeGateway = gw.id; renderTabs(); updateGatewayInfo(); };
+      wrap.appendChild(btn);
+    });
+  }
+
+  function updateGatewayInfo(){
+    const gw = gateways.find(g => g.id === activeGateway);
+    document.getElementById('gwNameLbl').textContent = gw.name;
+    document.getElementById('gwNumber').textContent = gwNumbers[activeGateway] || 'সেট করা হয়নি';
+  }
+
+  function copyGwNumber(){
+    copyToClipboard(gwNumbers[activeGateway] || '', 'নাম্বার কপি হয়েছে');
+  }
+
+  function loadGatewayNumbers(){
+    db.ref('paymentConfig').once('value').then(snap => {
+      snap.forEach(child => { gwNumbers[child.key] = child.val().number; });
+      updateGatewayInfo();
+    }).catch(() => {
+      showToast('পেমেন্ট নাম্বার লোড করা যায়নি, ইন্টারনেট চেক করুন', 'error');
+    });
+  }
+
+  // ট্রানজেকশন আইডিকে Firebase key হিসেবে ব্যবহারযোগ্য করার জন্য normalize করা হয়
+  // (স্পেস বাদ, বড় হাতের অক্ষরে কনভার্ট যাতে ছোট/বড় হাতের ভিন্নতায় ডুপ্লিকেট ফাঁকি না দেওয়া যায়,
+  // আর Firebase key-তে নিষিদ্ধ অক্ষরগুলো (. # $ [ ] /) বাদ দেওয়া হয়)
+  function normalizeTrxId(trxId){
+    return trxId.trim().toUpperCase().replace(/[.#$\[\]\/\s]/g, '');
+  }
+
+  function submitDeposit(){
+    const amount = parseFloat(document.getElementById('depAmount').value);
+    const trxId = document.getElementById('depTrxId').value.trim();
+    const senderNumber = document.getElementById('depSenderNumber').value.trim();
+    if(!amount || amount <= 0){ showToast('সঠিক পরিমাণ টাকা দিন','error'); return; }
+    if(!trxId){ showToast('ট্রানজেকশন আইডি দিন','error'); return; }
+    if(!/^01[0-9]{9}$/.test(senderNumber)){ showToast('সঠিক মোবাইল নাম্বার দিন','error'); return; }
+
+    const trxKey = normalizeTrxId(trxId);
+    if(!trxKey){ showToast('সঠিক ট্রানজেকশন আইডি দিন','error'); return; }
+
+    const confirmBtn = document.querySelector('.btn-row .confirm');
+    if(confirmBtn){ confirmBtn.disabled = true; confirmBtn.textContent = 'যাচাই হচ্ছে...'; }
+
+    // ট্রানজেকশন আইডিটা আগে কেউ ব্যবহার করেছে কিনা — অ্যাটমিক ট্রানজেকশন দিয়ে claim করা হচ্ছে
+    // যাতে দুইজন একই সময়ে একই trxId জমা দিলেও একবারই accept হয়
+    db.ref('usedTrxIds/' + trxKey).transaction((current) => {
+      if(current !== null) return; // আগে থেকেই আছে — abort
+      return true;
+    }).then((result) => {
+      if(!result.committed){
+        showToast('এই ট্রানজেকশন আইডি আগেই ব্যবহার হয়েছে, সঠিক আইডি দিন', 'error');
+        if(confirmBtn){ confirmBtn.disabled = false; confirmBtn.textContent = 'ওকে'; }
+        return;
+      }
+
+      if(confirmBtn) confirmBtn.textContent = 'প্রসেসিং...';
+
+      db.ref('deposits').push({
+        userId: depUser.uid, gateway: activeGateway, amount, trxId, senderNumber,
+        status: 'pending', createdAt: firebase.database.ServerValue.TIMESTAMP
+      }).then(() => {
+        showToast('ডিপোজিট রিকোয়েস্ট সফলভাবে জমা হয়েছে', 'success');
+        setTimeout(() => window.location.href = 'home.html', 1200);
+      }).catch(() => {
+        showToast('কিছু একটা সমস্যা হয়েছে, আবার চেষ্টা করুন','error');
+        if(confirmBtn){ confirmBtn.disabled = false; confirmBtn.textContent = 'ওকে'; }
+      });
+    }).catch(() => {
+      showToast('যাচাই করা যায়নি, আবার চেষ্টা করুন', 'error');
+      if(confirmBtn){ confirmBtn.disabled = false; confirmBtn.textContent = 'ওকে'; }
+    });
+  }
+
+  requireAuth((user)=>{
+    depUser = user;
+    checkBlockedStatus(user.uid);
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('main-content').classList.remove('hidden');
+    renderTabs();
+    loadGatewayNumbers();
+  });
+
+</script>
+</body>
+</html>
